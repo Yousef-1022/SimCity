@@ -1,0 +1,2 @@
+class Industrial:
+    pass
