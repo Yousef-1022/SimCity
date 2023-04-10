@@ -11,3 +11,9 @@ class Panel:
         font = pygame.font.Font(None,font_size)
         text_surface = font.render(text, True,text_color)
         screen.blit(text_surface,text_position)
+    
+    def getWidth(self):
+        return self.width
+    
+    def getHeight(self):
+        return self.height

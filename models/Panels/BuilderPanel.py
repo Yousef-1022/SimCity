@@ -16,9 +16,9 @@ class BuilderPanel(Panel):
             self.icons.append(icon_image)
 
     def display_assets(self, screen, icon_filenames):
-        """Display the loaded icon images on the BuilderPanel."""
+        """Display the loaded icon images on the BuilderPanel. (Takes a tuple)"""
         self.icons = [] 
-        self.load_icons(icon_filenames)
+        self.load_icons([f[0] for f in icon_filenames])
         # Calculate the size and position of the table cells
         cell_width = self.icon_size + self.icon_spacing
         cell_height = self.icon_size + self.icon_spacing
