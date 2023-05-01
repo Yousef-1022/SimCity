@@ -1,2 +1,7 @@
+import pygame
+import main
+from MenuClass import MenuClass
+
 class GameEngine:
-    pass
+    Game = MenuClass()
+    Game.display_menu()

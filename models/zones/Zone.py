@@ -1,13 +1,14 @@
 import xml.etree.ElementTree as ET
 from pytmx import TiledObject
 
-class Stadium:
-
-    def __init__(self,x,y,mapInstance):
+class Zone:
+    def __init__(self,x,y):
         self.x = x 
         self.y = y
-        objType = type(self).__name__
-        placeholder = mapInstance.getStaticObjectByType(objType)
+        
+    def createZoneObj(self,mapInstance) -> TiledObject:
+        zoneType = type(self).__name__
+        placeholder = mapInstance.getStaticObjectByType(zoneType)
         width = mapInstance.getTileWidth()
         height = mapInstance.getTileHeight()
         id = mapInstance.getNextObjId()+mapInstance.getObjCount()
@@ -20,4 +21,6 @@ class Stadium:
             </object>')
         obj = TiledObject(mapInstance.returnMap(),xml)
         obj.gid=placeholder.gid
-        self.instance = obj
+       
+        return obj
+        
