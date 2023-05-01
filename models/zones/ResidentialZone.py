@@ -1,4 +1,4 @@
-from models.Zones.Zone import Zone
+from models.zones.Zone import Zone
 
 class ResidentialZone(Zone):
     

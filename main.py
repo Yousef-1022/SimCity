@@ -3,9 +3,9 @@ from models.Map import Map
 from models.Panels.BuilderPanel import BuilderPanel
 from models.Panels.DescriptionPanel import DescriptionPanel
 from models.Panels.PricePanel import PricePanel
-from models.Zones.ResidentialZone import ResidentialZone
-from models.Zones.IndustrialZone import IndustrialZone
-from models.Zones.ServiceZone import ServiceZone
+from models.zones.ResidentialZone import ResidentialZone
+from models.zones.IndustrialZone import IndustrialZone
+from models.zones.ServiceZone import ServiceZone
 from models.PoliceDepartment import PoliceDepartment
 from models.Stadium import Stadium
 from models.Utils import getIconAndType , getFilesFromDir , getIconLocByName
