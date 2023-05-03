@@ -8,6 +8,8 @@ from models.zones.IndustrialZone import IndustrialZone
 from models.zones.ServiceZone import ServiceZone
 from models.PoliceDepartment import PoliceDepartment
 from models.Stadium import Stadium
+from models.Player import Player
+from models.Timer import Timer
 from models.Utils import getIconAndType , getFilesFromDir , getIconLocByName
 
 pygame.init()
@@ -25,7 +27,11 @@ icons_dir = "./Map/Assets/Builder_assets/"
 icons = [getIconAndType(f,icons_dir) for f in getFilesFromDir(icons_dir)]
 map = Map(SCREEN, builder_panel.getWidth(), description_panel.getHeight())
 class_tobuild = ""
-
+# game simulation variables
+player = Player("Abdullah", 20000)
+game_speed  = 1
+timer = Timer(game_speed, 200)
+paused  = False
 def run():
     
     normal_cursor = True
@@ -36,7 +42,9 @@ def run():
         
         cursorImgRect.center = pygame.mouse.get_pos()
         map.display()
-        description_panel.display(SCREEN,24,(10,10),(128,128,128),"Funds: 2000 , more industrial zones needed",(255,255,255))
+
+        description_panel.display(SCREEN,24,(10,10),(128,128,128),f"Funds: {player.money}$ , more industrial zones needed",(255,255,255))
+        description_panel.displayTime(SCREEN,f"Time: {timer.get_current_date_str()}",(500,10))
         price_panel.display(SCREEN,24,(96, SCREEN.get_height() - 20),(128,128,128),"$100 Road",(255,255,255))
         builder_panel.display(SCREEN,0,(0,0),(90,90,90),"",(0,0,0))
         builder_panel.display_assets(SCREEN,icons)
@@ -74,9 +82,12 @@ def run():
                     class_tobuild = icons[selected_icon][1]
             elif event.type == pygame.KEYDOWN:  # Scroll handling
                 map.handleScroll(event.key)
-                
+        
         if not normal_cursor:
             SCREEN.blit(cursorImg, cursorImgRect)
-            
+        # Limit the frame rate to 60 FPS
+        # time.tick(60)
+        timer.update_time(paused)
+        timer.tick(60)
         pygame.display.update()
         SCREEN.fill((0, 0, 0))
