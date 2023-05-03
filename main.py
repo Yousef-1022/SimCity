@@ -11,6 +11,7 @@ from models.Stadium import Stadium
 from models.Player import Player
 from models.Timer import Timer
 from models.Utils import getIconAndType , getFilesFromDir , getIconLocByName
+from models.GridSystem import GridSystem
 
 pygame.init()
 
@@ -27,11 +28,16 @@ icons_dir = "./Map/Assets/Builder_assets/"
 icons = [getIconAndType(f,icons_dir) for f in getFilesFromDir(icons_dir)]
 map = Map(SCREEN, builder_panel.getWidth(), description_panel.getHeight())
 class_tobuild = ""
-# game simulation variables
+
+# Game simulation variables
 player = Player("Abdullah", 20000)
 game_speed  = 1
 timer = Timer(game_speed, 200)
 paused  = False
+
+# Initialize grid system.
+Grid = GridSystem(map)
+
 def run():
     
     normal_cursor = True
@@ -67,7 +73,7 @@ def run():
                         class_obj = globals().get(class_tobuild)
                         obj = ""
                         if class_obj is not None:
-                            obj = class_obj(x-1,y-1,map)    # Change
+                            obj = class_obj(x-1,y-1,timer.get_current_date_str(),map)    # Change
                             map.addObject(obj.instance)
                             class_tobuild = -1
                         else:

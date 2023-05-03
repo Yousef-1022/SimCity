@@ -2,13 +2,14 @@ import xml.etree.ElementTree as ET
 from pytmx import TiledObject
 
 class Zone:
-    def __init__(self,x,y):
+    def __init__(self,x,y,creationTime):
         self.x = x 
         self.y = y
+        self.creationTime = creationTime
         
         
-    def createZoneObj(self,mapInstance,currentTime) -> TiledObject:
-        """Creates a zone object, requires the map to be passed and the currentTime object"""
+    def createZoneObj(self,mapInstance) -> TiledObject:
+        """Creates a zone object, requires the map to be passed"""
         zoneType = type(self).__name__
         placeholder = mapInstance.getStaticObjectByType(zoneType)
         width = mapInstance.getTileWidth()
@@ -20,7 +21,7 @@ class Zone:
                     <property name="Level" type="int" value="1"/> \
                     <property name="Placeholder" value="dynamic"/> \
                     <property name="Citizens" value=""/>  \
-                    <property name="CreationDate" value="{currentTime}"/> \
+                    <property name="CreationDate" value="{self.creationTime}"/> \
                     <property name="RevenueGenerate" type="int" value="0"/> \
                     <property name="MaintenanceFee" type="int" value="0"/> \
                 </properties> \

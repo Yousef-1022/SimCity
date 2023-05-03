@@ -1,6 +1,6 @@
 import os
 from pytmx import TiledObject
-from Timer import Timer
+from models.Timer import Timer
 
 def getFilesFromDir (dir_path) -> list:
     """Returns all the files as a list from the given path"""
