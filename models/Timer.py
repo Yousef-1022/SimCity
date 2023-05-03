@@ -53,3 +53,11 @@ class Timer:
         """
         if not paused:
             self.current_time += datetime.timedelta(seconds=self.time_factor)
+        
+    def subtract_with_time_str(self,date_str: str) -> int:
+        """With a given formatted string 'YYYY-MM-DD', returns the difference in days between the current
+        time object and the given string"""
+        x = datetime.datetime.strptime(date_str, "%Y-%m-%d")
+        delta = self.get_current_time() - x
+        diff_in_days = delta.days
+        return diff_in_days
