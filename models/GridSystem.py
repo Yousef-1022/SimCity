@@ -16,3 +16,5 @@ class GridSystem:
                 elif not (gid == 0):
                     t = Tile(x,y,"Ground",False)
                     self.matrix[x][y] = t
+
+

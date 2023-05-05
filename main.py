@@ -101,8 +101,10 @@ def run():
                             print(f"Can't build class: {class_tobuild} because it doesn't exist")
                         normal_cursor = True
                 if selected_icon != None:
+                    print(selected_icon)
                     # Handle cursor at selection
                     cursorImgRect = cursorImg.get_rect()
+                    # if
                     cursorImg = pygame.transform.scale(pygame.image.load(icons[selected_icon][0]), (128,128))
                     cursorImgRect.center = mouse_pos
                     normal_cursor = False
@@ -113,7 +115,6 @@ def run():
         if not normal_cursor:
             SCREEN.blit(cursorImg, cursorImgRect)
         # Limit the frame rate to 60 FPS
-        # time.tick(60)
         timer.update_time(paused)
         timer.tick(60)
         pygame.display.update()
