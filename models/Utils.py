@@ -36,13 +36,13 @@ def getOverAllSatisfaction(list:list) -> bool:
 def hasYearPassedFromCreation(obj:TiledObject,givenDate:Timer) -> bool:
     """Checks the creation date of the zone/Building and the givenDate whether a year has passed or not """
     x = givenDate.subtract_with_time_str(obj.properties["CreationDate"])
-    if x % 365 == 0:
+    if x != 0 and x % 365 == 0:
         return True
     return False
     
 def hasQuarterPassedFromCreation(obj:TiledObject,givenDate:Timer) -> bool:
     """Checks if a quarter (90 days) passed since creation"""
     x = givenDate.subtract_with_time_str(obj.properties["CreationDate"])
-    if x % 90 == 0:
+    if x != 0 and x % 90 == 0:
         return True
     return False

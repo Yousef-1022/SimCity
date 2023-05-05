@@ -10,7 +10,7 @@ from models.PoliceDepartment import PoliceDepartment
 from models.Stadium import Stadium
 from models.Player import Player
 from models.Timer import Timer
-from models.Utils import getIconAndType , getFilesFromDir , getIconLocByName
+from models.Utils import *
 from models.GridSystem import GridSystem
 
 pygame.init()
@@ -19,6 +19,8 @@ pygame.init()
 SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 768
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 SCROLL_SPEED = 5
+MONEY_PER_DAY = 20
+TAX_VARIABLE = 0.05
 
 # Map & Panels
 description_panel = DescriptionPanel(0,0, SCREEN.get_width(), 32)
@@ -30,22 +32,21 @@ map = Map(SCREEN, builder_panel.getWidth(), description_panel.getHeight())
 class_tobuild = ""
 
 # Game simulation variables
-player = Player("Abdullah", 20000)
+player = Player("HUMAN", 100000)
 game_speed  = 1
-timer = Timer(game_speed, 200)
+timer = Timer(game_speed, 700)
 paused  = False
 
 # Initialize grid system.
 Grid = GridSystem(map)
 
 def run():
-    
     normal_cursor = True
     cursorImg = pygame.image.load(getIconLocByName("bulldozer",icons))
     cursorImgRect = cursorImg.get_rect()
+    day = timer.get_current_time().day
     
     while True:
-        
         cursorImgRect.center = pygame.mouse.get_pos()
         map.display()
 
@@ -55,6 +56,26 @@ def run():
         builder_panel.display(SCREEN,0,(0,0),(90,90,90),"",(0,0,0))
         builder_panel.display_assets(SCREEN,icons)
         
+        if(timer.get_current_time().day != day):
+            for obj in map.getAllObjects():
+                # IncreaseRevenue of each Zone per day
+                total_citizens = len(obj.properties['Citizens'])
+                if(total_citizens != 0):
+                    #print("Citizen:",obj,obj.properties['CreationDate'],timer.get_current_date_str())
+                    obj.properties['Revenue'] += (MONEY_PER_DAY * total_citizens)
+                # Deduct MaintenanceFees from Player
+                if(hasQuarterPassedFromCreation(obj,timer)):
+                    #print("Quarter:",obj,obj.properties['CreationDate'],timer.get_current_date_str())
+                    player.money -= obj.properties['MaintenanceFee']
+                # Get revenue (TAX) from Zones to the Player (changes obj revenue to zero since tax is collected per year)
+                elif(hasYearPassedFromCreation(obj,timer)):
+                    #print("Year:",obj,obj.properties['CreationDate'],timer.get_current_date_str())
+                    revenue = obj.properties['Revenue'] * TAX_VARIABLE
+                    player.money += revenue
+                    obj.properties['Revenue'] = 0
+            day = timer.get_current_time().day
+            
+            
         for event in pygame.event.get(): # mouse button click, keyboard, or the x button.
             if pygame.mouse.get_pressed()[2]:
                 normal_cursor = True
@@ -74,7 +95,7 @@ def run():
                         obj = ""
                         if class_obj is not None:
                             obj = class_obj(x-1,y-1,timer.get_current_date_str(),map)    # Change
-                            map.addObject(obj.instance)
+                            map.addObject(obj.instance,player)
                             class_tobuild = -1
                         else:
                             print(f"Can't build class: {class_tobuild} because it doesn't exist")

@@ -65,7 +65,7 @@ class Map:
             pass
         
     def addObject(self, obj, player):
-        """Addes an instantiated class into the list of objects"""
+        """Addes a TiledObject into the list of objects"""
         can_be_added = True
         objLayer = self.__map.get_layer_by_name("Objects")
 
@@ -77,7 +77,7 @@ class Map:
             if (self.collide_with_zone(ob, obj)):
                 can_be_added = False
         if can_be_added:
-            player.money = player.money - int(obj.price)
+            player.money = player.money - int(obj.properties['Price'])
             objLayer.append(obj)
             self.__objcount += 1
  
@@ -125,8 +125,8 @@ class Map:
         return self.__map.tileheight
     
     def getTileWidth(self):
-        return self.__map.tilewidth
-        
+        return self.__map.tilewidth    
+
     def collide_with_zone(self,zone1, zone2):
         # Check if the zones overlap in the x-axis
         if (zone1.x < zone2.x + zone2.width) and (zone1.x + zone1.width > zone2.x):
@@ -139,3 +139,8 @@ class Map:
         return False
 
         
+    def getAllObjects(self):
+        if(self.__objcount == 0):
+            return []
+        else:
+            return list(self.__map.objects)[-self.__objcount:]

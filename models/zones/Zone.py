@@ -6,7 +6,7 @@ class Zone:
         self.x = x 
         self.y = y
         self.creationTime = creationTime
-        self.price = 100 # Zone price
+        self.price = 0
         
         
     def createZoneObj(self,mapInstance) -> TiledObject:
@@ -23,12 +23,12 @@ class Zone:
                     <property name="Placeholder" value="dynamic"/> \
                     <property name="Citizens" value=""/>  \
                     <property name="CreationDate" value="{self.creationTime}"/> \
-                    <property name="price" value="{self.price}"/> \
-                    <property name="RevenueGenerate" type="int" value="0"/> \
+                    <property name="Price" value="{self.price}"/> \
+                    <property name="Revenue" type="int" value="0"/> \
                     <property name="MaintenanceFee" type="int" value="0"/> \
                 </properties> \
             </object>')
         obj = TiledObject(mapInstance.returnMap(),xml)
         obj.gid = placeholder.gid
-        obj.properties['Citizens'] = []  
+        obj.properties['Citizens'] = []
         return obj

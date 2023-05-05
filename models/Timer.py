@@ -61,3 +61,6 @@ class Timer:
         delta = self.get_current_time() - x
         diff_in_days = delta.days
         return diff_in_days
+    
+    # def is_different_day(self):
+    #     return 

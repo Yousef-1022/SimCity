@@ -6,6 +6,7 @@ class Stadium:
     def __init__(self,x,y,creationTime,mapInstance):
         self.x = x 
         self.y = y
+        self.price = 600
         self.creationTime = creationTime
         objType = type(self).__name__
         placeholder = mapInstance.getStaticObjectByType(objType)
@@ -17,10 +18,14 @@ class Stadium:
                 <properties> \
                     <property name="Level" type="int" value="1"/> \
                     <property name="Placeholder" value="dynamic"/> \
+                    <property name="Citizens" value=""/>  \
                     <property name="CreationDate" value="{self.creationTime}"/> \
+                    <property name="Price" value="{self.price}"/> \
+                    <property name="Revenue" type="int" value="0"/> \
                     <property name="MaintenanceFee" type="int" value="0"/> \
                 </properties> \
             </object>')
         obj = TiledObject(mapInstance.returnMap(),xml)
         obj.gid=placeholder.gid
+        obj.properties['Citizens'] = []
         self.instance = obj

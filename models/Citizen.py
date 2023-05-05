@@ -1,5 +1,5 @@
 from Utils import addCitizen
-from .zones import ResidentialZone
+from models.zones import ResidentialZone
 
 next_citizen_id = 0
 class Citizen:
