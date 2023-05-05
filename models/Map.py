@@ -64,12 +64,23 @@ class Map:
         else:
             pass
         
-    def addObject(self,obj):
+    def addObject(self, obj, player):
         """Addes an instantiated class into the list of objects"""
+        can_be_added = True
         objLayer = self.__map.get_layer_by_name("Objects")
-        objLayer.append(obj)
-        self.__objcount += 1
-        
+
+        if self.__objcount > 0:
+            objects = (list(self.__map.objects)[-self.__objcount:])
+        else:
+            objects = []
+        for ob in objects:
+            if (self.collide_with_zone(ob, obj)):
+                can_be_added = False
+        if can_be_added:
+            player.money = player.money - int(obj.price)
+            objLayer.append(obj)
+            self.__objcount += 1
+ 
     def getClickedTile(self,mousePos):
         """Returns the map's actual tile coordinates"""
         builderPanelWidth = self.__panel_width
@@ -115,4 +126,16 @@ class Map:
     
     def getTileWidth(self):
         return self.__map.tilewidth
+        
+    def collide_with_zone(self,zone1, zone2):
+        # Check if the zones overlap in the x-axis
+        if (zone1.x < zone2.x + zone2.width) and (zone1.x + zone1.width > zone2.x):
+            # Check if the zones overlap in the y-axis
+            if (zone1.y < zone2.y + zone2.height) and (zone1.y + zone1.height > zone2.y):
+                # The zones overlap
+                return True
+        
+        # The zones don't overlap
+        return False
+
         
