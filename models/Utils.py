@@ -36,13 +36,22 @@ def getOverAllSatisfaction(list:list) -> bool:
 def hasYearPassedFromCreation(obj:TiledObject,givenDate:Timer) -> bool:
     """Checks the creation date of the zone/Building and the givenDate whether a year has passed or not """
     x = givenDate.subtract_with_time_str(obj.properties["CreationDate"])
-    if x != 0 and x % 365 == 0:
-        return True
-    return False
+    return x != 0 and x % 365 == 0
     
 def hasQuarterPassedFromCreation(obj:TiledObject,givenDate:Timer) -> bool:
     """Checks if a quarter (90 days) passed since creation"""
-    x = givenDate.subtract_with_time_str(obj.properties["CreationDate"])
-    if x != 0 and x % 90 == 0:
-        return True
+    if obj:
+        x = givenDate.subtract_with_time_str(obj.properties["CreationDate"])
+        return x != 0 and x % 90 == 0
     return False
+
+def get_image_size(image_type):
+    if image_type == "ResidentialZone" or image_type == "IndustrialZone" or image_type == "IndustrialZone" or "ServiceZone" == image_type:
+        return 128
+    elif image_type == "PoliceDepartment":
+        return 96      
+    elif image_type == "Stadium":
+        return 160     
+    else:
+        return 32   
+    

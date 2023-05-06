@@ -120,16 +120,24 @@ class Map:
         else:
             objects = []
         for ob in objects:
-            if (self.collide_with_zone(ob, obj)):
+            if (self.collide_with_objects(ob, obj)):
                 can_be_added = False
-        if (self.collide_with_water(obj.x, obj.y, obj.width,obj.height)):
+        if (obj.type != "Road" and self.collide_with_water(obj.x, obj.y, obj.width,obj.height)):
                 can_be_added = False
 
         if can_be_added:
             player.money = player.money - int(obj.properties['Price'])
             objLayer.append(obj)
             self.__objcount += 1
- 
+
+    def remove_obj(self, x, y, obj_type):
+        obj_layer = self.__map.get_layer_by_name("Objects")
+        for obj in obj_layer:
+            if (obj.x // 32)== x and (obj.y // 32) == y and obj.type == obj_type:
+                obj_layer.remove(obj)
+                self.__objcount-=1
+                break
+
     def getClickedTile(self,mousePos):
         """
         Returns the map's actual tile coordinates based on the mouse position.
@@ -243,21 +251,21 @@ class Map:
         """
         return self.__map.tilewidth
         
-    def collide_with_zone(self,zone1, zone2):
+    def collide_with_objects(self,obj1, obj2):
         """
         Checks if two zones overlap.
 
         Args:
-            zone1: The first zone object.
-            zone2: The second zone object.
+            obj1: The first  object.
+            obj2: The second object.
 
         Returns:
             True if the zones overlap, False otherwise.
         """
         # Check if the zones overlap in the x-axis
-        if (zone1.x < zone2.x + zone2.width) and (zone1.x + zone1.width > zone2.x):
+        if (obj1.x < obj2.x + obj2.width) and (obj1.x + obj1.width > obj2.x):
             # Check if the zones overlap in the y-axis
-            if (zone1.y < zone2.y + zone2.height) and (zone1.y + zone1.height > zone2.y):
+            if (obj1.y < obj2.y + obj2.height) and (obj1.y + obj1.height > obj2.y):
                 # The zones overlap
                 return True
         

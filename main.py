@@ -11,6 +11,7 @@ from models.Stadium import Stadium
 from models.Player import Player
 from models.Timer import Timer
 from models.Utils import *
+from models.Road import Road
 from models.GridSystem import GridSystem
 
 pygame.init()
@@ -58,21 +59,26 @@ def run():
         
         if(timer.get_current_time().day != day):
             for obj in map.getAllObjects():
-                # IncreaseRevenue of each Zone per day
-                total_citizens = len(obj.properties['Citizens'])
-                if(total_citizens != 0):
-                    #print("Citizen:",obj,obj.properties['CreationDate'],timer.get_current_date_str())
-                    obj.properties['Revenue'] += (MONEY_PER_DAY * total_citizens)
-                # Deduct MaintenanceFees from Player
-                if(hasQuarterPassedFromCreation(obj,timer)):
-                    #print("Quarter:",obj,obj.properties['CreationDate'],timer.get_current_date_str())
-                    player.money -= obj.properties['MaintenanceFee']
-                # Get revenue (TAX) from Zones to the Player (changes obj revenue to zero since tax is collected per year)
-                elif(hasYearPassedFromCreation(obj,timer)):
-                    #print("Year:",obj,obj.properties['CreationDate'],timer.get_current_date_str())
-                    revenue = obj.properties['Revenue'] * TAX_VARIABLE
-                    player.money += revenue
-                    obj.properties['Revenue'] = 0
+                if  obj.type == "Road":
+                    if(hasQuarterPassedFromCreation(obj,timer)):
+                        #print("Quarter:",obj,obj.properties['CreationDate'],timer.get_current_date_str())
+                        player.money -= obj.properties['MaintenanceFee'] 
+                else:
+                    # IncreaseRevenue of each Zone per day
+                    total_citizens = len(obj.properties['Citizens'])
+                    if(total_citizens != 0):
+                        #print("Citizen:",obj,obj.properties['CreationDate'],timer.get_current_date_str())
+                        obj.properties['Revenue'] += (MONEY_PER_DAY * total_citizens)
+                    # Deduct MaintenanceFees from Player
+                    if(hasQuarterPassedFromCreation(obj,timer)):
+                        #print("Quarter:",obj,obj.properties['CreationDate'],timer.get_current_date_str())
+                        player.money -= obj.properties['MaintenanceFee']
+                    # Get revenue (TAX) from Zones to the Player (changes obj revenue to zero since tax is collected per year)
+                    elif(hasYearPassedFromCreation(obj,timer)):
+                        #print("Year:",obj,obj.properties['CreationDate'],timer.get_current_date_str())
+                        revenue = obj.properties['Revenue'] * TAX_VARIABLE
+                        player.money += revenue
+                        obj.properties['Revenue'] = 0
             day = timer.get_current_time().day
             
             
@@ -94,19 +100,23 @@ def run():
                         class_obj = globals().get(class_tobuild)
                         obj = ""
                         if class_obj is not None:
-                            obj = class_obj(x-1,y-1,timer.get_current_date_str(),map)    # Change
+                            if class_tobuild == "Road":
+                                obj = class_obj(x,y,timer.get_current_date_str(),map)    # Change
+                            else:
+                                obj = class_obj(x - 1,y - 1,timer.get_current_date_str(),map)    # Change
+
                             map.addObject(obj.instance,player)
                             class_tobuild = -1
                         else:
-                            print(f"Can't build class: {class_tobuild} because it doesn't exist")
+                            map.remove_obj(x,y,"Road")
+                            #print(f"Can't build class: {class_tobuild} because it doesn't exist")
                         normal_cursor = True
                 if selected_icon != None:
-                    print(selected_icon)
                     # Handle cursor at selection
                     cursorImgRect = cursorImg.get_rect()
-                    # if
-                    cursorImg = pygame.transform.scale(pygame.image.load(icons[selected_icon][0]), (128,128))
-                    cursorImgRect.center = mouse_pos
+                    image_size = get_image_size(icons[selected_icon][1])
+                    cursorImg = pygame.transform.scale(pygame.image.load(icons[selected_icon][0]), (image_size,image_size))
+                    cursorImgRect.center = pygame.mouse.get_pos()
                     normal_cursor = False
                     class_tobuild = icons[selected_icon][1]
             elif event.type == pygame.KEYDOWN:  # Scroll handling
