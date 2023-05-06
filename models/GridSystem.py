@@ -7,7 +7,7 @@ class GridSystem:
         self.cols = map.height
         self.matrix = [[None for j in range(self.cols)] for i in range(self.rows)]
         for layer in map.visible_layers:
-            if layer.name == "Objects":
+            if layer.name == "Objects" or layer.name == "ObjectsTop":
                 continue
             for x, y, gid in layer:
                 if (layer.name == "Water" or layer.name == "WaterEdges") and not (gid == 0):

@@ -56,7 +56,7 @@ class Map:
         """Displays the map after initialization"""
         map_surface = pygame.Surface((self.__map.width * self.__map.tilewidth, self.__map.height * self.__map.tileheight))
         for layer in self.__map.visible_layers:
-            if layer.name == "Objects":
+            if layer.name == "Objects" or layer.name == "ObjectsTop":
                 continue
             for x, y, gid in layer:
                 tile = self.__map.get_tile_image_by_gid(gid)
@@ -110,13 +110,13 @@ class Map:
 
         Args:
             obj: The object to be added.
-            player: The player object.
+            player: The player object is needed to add money.
         """
         can_be_added = True
         objLayer = self.__map.get_layer_by_name("Objects")
 
         if self.__objcount > 0:
-            objects = (list(self.__map.objects)[-self.__objcount:])
+            objects = self.get_all_objects()
         else:
             objects = []
         for ob in objects:
@@ -216,6 +216,20 @@ class Map:
             if type == o.type:
                 return o
             
+    def getStaticObjectByName(self,name):
+        """
+        Returns a TiledObject of the given name.
+
+        Args:
+            name: The name of the object.
+
+        Returns:
+            The TiledObject of the given name if found, otherwise None.
+        """
+        for o in self.__map.objects:
+            if name == o.name:
+                return o
+            
     def getObjCount(self):
         """
         Returns the count of objects in the map.
@@ -295,14 +309,43 @@ class Map:
         # No collision with water or water edges
         return False
         
-    def getAllObjects(self):
+    def get_all_objects(self):
         """
-        Returns a list of all objects in the map.
+        Gets the list of all Dynamic objects in the map.
 
         Returns:
-            A list of all objects in the map. If no objects are present, an empty list is returned.
+            A list of all Dynamic Tiled objects in the map. If no objects are present, an empty list is returned.
         """
         if self.__objcount == 0:
             return []
         else:
-            return list(self.__map.objects)[-self.__objcount:]
+            res = []
+            for obj in self.__map.objects:
+                if obj.properties['Placeholder'] == "dynamic":
+                    res.append(obj)
+            return res
+
+    def get_residential_zones(self):
+        """
+        Get the list of all the ResidentialZones
+        
+        Returns:
+            A list of all Tiled objects representing ResidentialZones
+        """
+        if self.__objcount == 0:
+            return []
+        else:
+            return [obj for obj in self.get_all_objects() if obj.type == "ResidentialZone"]
+        
+    def get_work_zones(self):
+        """
+        Get the list of all the IndustrialZones and ServiceZones
+        
+        Returns:
+            A list of all Tiled objects representing the IndustrialZones and ServiceZones
+        """
+        if self.__objcount == 0:
+            return []
+        else:
+            return [obj for obj in self.get_all_objects() \
+                if obj.type == "IndustrialZone" or obj.type == "ServiceZone"]

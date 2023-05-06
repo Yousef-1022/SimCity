@@ -1,4 +1,5 @@
 from models.zones.Zone import Zone
+from models.Utils import remove_citizen_from_zone
 
 class IndustrialZone(Zone):
     
@@ -7,3 +8,12 @@ class IndustrialZone(Zone):
         self.price = 300
         self.instance = (super().createZoneObj(mapInstance))
         self.instance.properties['MaintenanceFee'] = 500
+        self.instance.properties['Capacity'] = 10
+    
+    def get_citizens_satisfaction(self) -> int:
+        """Returns the satisfaction of the citizens in this Zone"""
+        return sum (citizen.satisfaction for citizen in self.instance.properties['Citizens'])
+    
+    def remove_citizen(self,c):
+        """Removes a citizen from the list"""
+        remove_citizen_from_zone(c)

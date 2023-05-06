@@ -22,6 +22,7 @@ class Zone:
                     <property name="Level" type="int" value="1"/> \
                     <property name="Placeholder" value="dynamic"/> \
                     <property name="Citizens" value=""/>  \
+                    <property name="Capacity" type="int" value="0"/>  \
                     <property name="CreationDate" value="{self.creationTime}"/> \
                     <property name="Price" value="{self.price}"/> \
                     <property name="Revenue" type="int" value="0"/> \
