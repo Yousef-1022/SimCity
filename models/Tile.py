@@ -1,3 +1,7 @@
-import pygame
-class Tile(pygame.sprite.Sprite):
-    pass
+class Tile:
+    def __init__ (self,x,y,type,occupied):
+        self.x=x
+        self.y=y
+        self.type=type
+        self.occupied=occupied
+        
