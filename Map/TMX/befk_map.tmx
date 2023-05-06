@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.0" orientation="orthogonal" renderorder="right-down" width="40" height="40" tilewidth="32" tileheight="32" infinite="0" nextlayerid="18" nextobjectid="85">
+<map version="1.10" tiledversion="1.10.0" orientation="orthogonal" renderorder="right-down" width="40" height="40" tilewidth="32" tileheight="32" infinite="0" nextlayerid="18" nextobjectid="95">
  <tileset firstgid="1" name="Tileset_544x288" tilewidth="32" tileheight="32" tilecount="153" columns="17">
   <image source="../Assets/Tileset_544x288.png" width="544" height="288"/>
  </tileset>
@@ -223,15 +223,18 @@
     <property name="Placeholder" value="static"/>
    </properties>
   </object>
-  <object id="83" name="PoliceDepartment" type="PoliceDepartment" gid="165" x="-256" y="512" width="128" height="128" visible="0">
+  <object id="92" name="PoliceDepartment" type="PoliceDepartment" gid="165" x="-256" y="480" width="96" height="96" visible="0">
    <properties>
-    <property name="Level" type="int" value="1"/>
     <property name="Placeholder" value="static"/>
    </properties>
   </object>
-  <object id="84" name="Stadium" type="Stadium" gid="166" x="-256" y="640" width="128" height="128" visible="0">
+  <object id="93" name="Stadium" type="Stadium" gid="166" x="-256" y="640" width="160" height="160" visible="0">
    <properties>
-    <property name="Level" type="int" value="1"/>
+    <property name="Placeholder" value="static"/>
+   </properties>
+  </object>
+  <object id="94" name="Road" type="Road" gid="167" x="-256" y="672" width="32" height="32" visible="0">
+   <properties>
     <property name="Placeholder" value="static"/>
    </properties>
   </object>
