@@ -84,7 +84,7 @@ def simulate_building_addition(obj:TiledObject,map):
         objLayer.append(building)
             
     
-def get_linked_ids_for_obj(obj:TiledObject) -> list[int]:
+def get_linked_ids_for_obj(obj:TiledObject) -> list:
     """
     Gets all the linked objects (Second object layer) representing the buildings
     on top of the current object

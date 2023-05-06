@@ -40,7 +40,7 @@ class Citizen:
             del Citizen.__citizens[c.id]
     
     @classmethod
-    def get_sad_citizens(self,s_lvl:int) -> list['Citizen']:
+    def get_sad_citizens(self,s_lvl:int) -> list:
         """
         Gets a list of citizens who have a satisfaction level
         less or equal to the given lvl
