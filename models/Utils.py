@@ -2,6 +2,7 @@ import os
 from pytmx import TiledObject
 from models.Timer import Timer
 from models.BuildingAdder import form_tiled_obj
+import math
 
 
 def get_files_from_dir (dir_path) -> list:
@@ -80,11 +81,11 @@ def simulate_building_addition(obj:TiledObject,map):
             create = True
     if (create):
         building = form_tiled_obj(obj,map)
-        objLayer = map.returnMap().get_layer_by_name("ObjectsTop")
+        objLayer = obj.parent.get_layer_by_name("ObjectsTop")
         objLayer.append(building)
             
     
-def get_linked_ids_for_obj(obj:TiledObject) -> list[int]:
+def get_linked_ids_for_obj(obj:TiledObject) -> list:
     """
     Gets all the linked objects (Second object layer) representing the buildings
     on top of the current object
@@ -104,12 +105,148 @@ def get_linked_ids_for_obj(obj:TiledObject) -> list[int]:
 
 
 def get_image_size(image_type):
-    if image_type == "ResidentialZone" or image_type == "IndustrialZone" or image_type == "IndustrialZone" or "ServiceZone" == image_type:
+    if image_type == "ResidentialZone" or image_type == "IndustrialZone" or "ServiceZone" == image_type:
         return 128
-    elif image_type == "PoliceDepartment":
+    elif image_type == "PoliceDepartment" or image_type == "Forest":
         return 96      
     elif image_type == "Stadium":
-        return 160     
+        return 160    
     else:
         return 32   
     
+def calc_d (p1,p2) -> int:
+    """
+    Helper to calculate the distance between the two given points
+    """
+    horizontal_distance=abs(p1[0]-p2[0])
+    vertical_distance=abs(p1[1]-p2[1])
+    distance = (horizontal_distance + vertical_distance)
+    return distance - 1 
+    #distance = math.sqrt((horizontal_distance)**2 + (vertical_distance)**2)
+    #return math.floor(distance)
+    
+def get_area(obj:TiledObject):
+    """
+    Returns a list of (x,y) coordinates that reprsenet the object's area
+    
+    Each point represents coordinates of a Tile
+    """
+    res = []
+    tilex = obj.x // obj.parent.tilewidth
+    tiley = obj.y // obj.parent.tileheight
+    rows = int(obj.width // obj.parent.tilewidth)
+    cols = int(obj.height // obj.parent.tileheight)
+    for i in range(rows):
+        for j in range (cols):
+            res.append((tilex+i,tiley+j))
+    return res
+
+def get_circumference(obj:TiledObject):
+    """
+    Returns a list of (x,y) coordinates the represent the object's circumference
+    
+    Each point represents coordinates of a Tile
+    """
+    tilex = obj.x // obj.parent.tilewidth
+    tiley = obj.y // obj.parent.tileheight
+    rows = int(obj.width // obj.parent.tilewidth)
+    cols = int(obj.height // obj.parent.tileheight)
+    res = []
+    for i in range(rows):
+        res.append((tilex+i,tiley))
+        res.append((tilex+i,tiley+cols-1))
+    for j in range(cols):
+        res.append((tilex,tiley+j))
+        res.append((tilex+rows-1,tiley+j))
+    
+    return list(set(res))
+
+def distance_between_two(obj1:TiledObject,obj2:TiledObject):
+    """
+    Returns the minimal distance between the two tiled objects
+    
+    Checks the cirumference of both, and calculates the distance of the closest two points
+    """
+    
+    c1=get_circumference(obj1)
+    c2=get_circumference(obj2)
+    min = 69420
+    for p1 in c1:
+        for p2 in c2:
+            d = calc_d(p1,p2)
+            if (d <= min):
+                min = d
+    return min
+
+def get_points_looking_at_each_other(Frst:TiledObject,RZone:TiledObject) -> list:
+    """
+    Usage: Forest
+    Returns a list of points that represent the possible view between the Forest and RZone
+    
+    This can serve as two walls of coordinates
+    
+    Each point represents coordinates of the Tile
+    
+    Returns: a List of sorted tuples, half represents an object wall and the other half represents an object wall
+    """
+    
+    c1=get_circumference(Frst)
+    c2=get_circumference(RZone)
+    res=[]
+    min = 69420
+    for p1 in c1:
+        for p2 in c2:
+            d = calc_d(p1,p2)
+            if (d < min):
+                min = d
+                res.clear()
+                res.append(p1)
+                res.append(p2)
+            elif(d == min):
+                res.append(p1)
+                res.append(p2)
+    ans = sorted(res, key=lambda p: (p[0], p[1]))        
+    return ans
+    
+def get_path_between_points(p1,p2) -> list:
+    """
+    Based on the two points, returns a list of points showing the path it takes to reach
+    Doesn't include the two points themselves
+    """
+    if p1[0] < p2[0]:
+        h = [(float(x),float(p1[1])) for x in range(int(p1[0])+1, int(p2[0])+1)]
+        v = []
+        if p1[1] < p2[1]:
+            v = [(float(max(p1[0],p2[0])),float(y)) for y in range(int(p1[1])+1, int(p2[1]))]
+        elif p1[1] == p2[1]:
+            h = h[:-1]
+        else:   
+            v = [(float(max(p1[0],p2[0])),float(y)) for y in range(int(p2[1])+1, int(p1[1]))]
+        return h+v
+    else:
+        h = [(float(x),float(p2[1])) for x in range(int(p2[0])+1, int(p1[0])+1)]
+        v = []
+        if p1[1] < p2[1]:
+            v = [(float(max(p1[0],p2[0])),float(y)) for y in range(int(p1[1])+1, int(p2[1]))]
+        elif p1[1] == p2[1]:
+            h = h[:-1]
+        else:
+            v = [(float(max(p1[0],p2[0])),float(y)) for y in range(int(p2[1])+1, int(p1[1]))]
+        return h+v
+
+def is_satisfaction_zone(SZone:TiledObject):
+    """
+    Check if the given tiledobject is a satisfaction increaser
+    """
+    if (SZone.type == 'Stadium' or SZone.type == 'PoliceDepartment' or SZone.type == 'Forest'):
+        return True
+    return False
+    
+def get_zone_satisfaction(zone:TiledObject):
+    """
+    Returns the amount of satisfaction of the zone
+    """
+    sat = 0.0
+    for c in zone.properties['Citizens']:
+        sat += c.satisfaction
+    return sat/float(len(zone.properties['Citizens']))

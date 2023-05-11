@@ -8,6 +8,7 @@ from models.zones.IndustrialZone import IndustrialZone
 from models.zones.ServiceZone import ServiceZone
 from models.PoliceDepartment import PoliceDepartment
 from models.Stadium import Stadium
+from models.Forest import Forest
 from models.Player import Player
 from models.Timer import Timer
 from models.Utils import *
@@ -43,6 +44,71 @@ paused  = False
 # Initialize grid system.
 Grid = GridSystem(map)
 
+def is_there_a_blocker_between(Frst:TiledObject,RZone:TiledObject,lst):
+    """
+    Get the points which represent the view of the RZone and the Forest,
+    Checks if there is a blocker between the Forest and the RZone
+    
+    Args:
+    Frst: Forest TiledObject
+    RZone: ResidentialZone TiledObject
+    lst: list consisting of all dynamic objects
+    """
+    wall = get_points_looking_at_each_other(Frst,RZone)
+    mid = len(wall) // 2
+    l1 = wall[:mid]
+    l2 = wall[mid:]
+    res = [get_path_between_points(p1,p2) for p1, p2 in zip(l1, l2)]
+    flattened_res = [item for sublist in res for item in sublist]
+    for obj in lst:
+        if ((obj != Frst or obj != RZone) and obj.type != 'Road'):
+            s1 = set(get_area(obj))
+            s2 = set(flattened_res)
+            if s1.intersection(s2):
+                return True
+    return False
+
+def handle_citizen_addition_satisfaction(c:Citizen):
+    """
+    After assigning a citizen to an RZone, checks nearby SatisfactionIncreasers and adds accordingly
+    """
+    for SZone in map.get_satisfaction_increasers():
+        if (distance_between_two(c.home,SZone) <= SZone.properties['Radius']):
+            if (SZone.type == "Forest"):
+                if(is_there_a_blocker_between(c.home,SZone,map.get_all_objects())):
+                    continue
+                else:
+                    c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+            else:
+                c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+
+        
+def handle_satisfaction_zone_addition(SZone:TiledObject):
+    """
+    After the player creates a Stadium, PoliceDepartment, or Forest, it checks nearby Citizens and adds satisfaction
+    """
+    for RZone in map.get_residential_zones():
+        if (distance_between_two(RZone,SZone) <= SZone.properties['Radius']):
+            if (SZone.type == "Forest"):
+                if(is_there_a_blocker_between(RZone,SZone,map.get_all_objects())):
+                    continue
+                else:
+                    for c in RZone.properties['Citizens']:
+                        c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+            else:
+                for c in RZone.properties['Citizens']:
+                    c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+            
+def handle_satisfaction_zone_removal(SZone:TiledObject):
+    """
+    After the player deletes a Stadium or PoliceDepartment, it checks nearby Citizens and decreases satisfaction
+    """
+    for RZone in map.get_residential_zones():
+        if (distance_between_two(RZone,SZone) <= SZone.properties['Radius'] and SZone.type != "Forest"):
+            for c in RZone.properties['Citizens']:
+                c.satisfaction -= (SZone.properties['Satisfaction']*c.satisfaction)
+
+
 def run():
     normal_cursor = True
     cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer",icons))
@@ -72,6 +138,7 @@ def run():
                 RZone = random.choice(RZones)
                 for c in initial_citizens:
                     c.assign_to_residential_zone(RZone,map)
+                    handle_citizen_addition_satisfaction(c)
                     initial_citizens.remove(c)
             
         if(timer.get_current_time().month != month):
@@ -97,24 +164,38 @@ def run():
             month = timer.get_current_time().month
         
         
-        
-        # Zones and (Buildings,Roads) Expense Logic 
+        # Zones and (Buildings,Roads,Forest) Expense Logic 
         if(timer.get_current_time().day != day):
             for obj in map.get_all_objects():
-                # Handle Buildings,Roads
+                did_a_quarter_pass = has_quarter_passed_from_creation(obj,timer)
+                did_a_year_pass = has_year_passed_from_creation(obj,timer)
+                
+                # Handle ServiceBuildings,Roads Expense
                 if obj.type == "Road" or obj.type == "PoliceDepartment" or obj.type == "Stadium":
-                    if(has_year_passed_from_creation(obj,timer)):
-                        player.money -= obj.properties['MaintenanceFee'] 
+                    if(did_a_year_pass):
+                        player.money -= obj.properties['MaintenanceFee']
+                        
+                # Handle Forest Expense and Grow
+                elif obj.type == "Forest":
+                    if(did_a_year_pass):
+                        if obj.properties['Mature']:
+                            player.money -= obj.properties['MaintenanceFee']
+                        else:
+                            obj.properties['Year'] += 1
+                            obj.properties['Satisfaction'] += 0.03
+                            if obj.properties['Year'] == 10:
+                                obj.properties['Mature'] = True
+                # Handle Zones Expense
                 else:
                     # Deduct MaintenanceFees for any Zone from Player
-                    if(has_quarter_passed_from_creation(obj,timer)):
+                    if(did_a_quarter_pass):
                         player.money -= obj.properties['MaintenanceFee']
                     # IncreaseRevenue of each WorkZone per day
                     total_citizens = len(obj.properties['Citizens'])
                     if(obj.type != "ResidentialZone" and total_citizens != 0):
                         obj.properties['Revenue'] += (MONEY_PER_DAY * total_citizens)
                     # Get revenue (TAX) from WorkZone to Player
-                    elif(obj.type != "ResidentialZone" and has_year_passed_from_creation(obj,timer)):
+                    elif(obj.type != "ResidentialZone" and did_a_year_pass):
                         revenue = obj.properties['Revenue'] * TAX_VARIABLE
                         player.money += revenue
                         obj.properties['Revenue'] = 0
@@ -145,6 +226,10 @@ def run():
                                 obj = class_obj(x - 1,y - 1,timer.get_current_date_str(),map)    # Change
 
                             map.addObject(obj.instance,player)
+                            # Satisfaction handling for: Forest, Stadium, and PoliceDepartment
+                            if(is_satisfaction_zone(obj.instance)):
+                                x = map.get_all_objects()
+                                handle_satisfaction_zone_addition(obj.instance)
                             class_tobuild = -1
                         else:
                             map.remove_obj(x,y,"Road")
