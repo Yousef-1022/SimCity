@@ -6,7 +6,7 @@ class Citizen:
     def __init__(self):
         self.home = None
         self.work = None
-        self.satisfaction = 50 
+        self.satisfaction = 50.0 
         self.id = Citizen.__next_id
         Citizen.__next_id += 1
         Citizen.__citizens[self.id] = self
@@ -24,7 +24,7 @@ class Citizen:
     @classmethod
     def get_max_possible_satisfaction(self) -> int:
         """Returns the max satisfaction possible for all created citizens"""
-        return len(Citizen.__citizens) * 100
+        return len(Citizen.__citizens) * 100.0
     
     @classmethod
     def get_total_citizens(self) -> int:
@@ -40,7 +40,7 @@ class Citizen:
             del Citizen.__citizens[c.id]
     
     @classmethod
-    def get_sad_citizens(self,s_lvl:int) -> list['Citizen']:
+    def get_sad_citizens(self,s_lvl:float) -> list:
         """
         Gets a list of citizens who have a satisfaction level
         less or equal to the given lvl

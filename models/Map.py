@@ -357,3 +357,18 @@ class Map:
         else:
             return [obj for obj in self.get_all_objects() \
                 if obj.type == "IndustrialZone" or obj.type == "ServiceZone"]
+            
+    def get_satisfaction_increasers(self) -> list:
+        """
+        Gets the Objects which can affect the Citizens satisfaction, eg: Stadium,PoliceDepartment, and Forest
+
+        Args:
+        map: TiledMap object
+
+        Returns:
+        a List full of Dynamic TiledObjects 
+        """
+        if self.__objcount == 0:
+            return []
+        else:
+            return [obj for obj in self.get_all_objects() if obj.type == "Stadium" or obj.type == "PoliceDepartment" or obj.type == "Forest"]
