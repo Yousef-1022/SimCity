@@ -60,10 +60,36 @@ def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
         <object id="{-1}" name="{placeholder.name}" type="{placeholder.type}" gid="{0}" x="{xtile}" y="{ytile}" width="{placeholder.width}" height="{placeholder.height}"> \
             <properties> \
                 <property name="linked_id" type="int" value="{TiledObj.id}"/> \
-                <property name="Placeholder" value="static"/> \
+                <property name="Placeholder" value="dynamic"/> \
             </properties> \
         </object>')
     
     obj = TiledObject(TiledObj.parent,xml)
     obj.gid = placeholder.gid
+    return obj
+
+def create_building (dic,mapInstance) -> TiledObject:
+    """
+    Function to create a building which can appear on top of a Zone.
+    
+    Usecase: recreating the building after using Pickle
+    
+    Args:
+    mapInstance: the TiledMap
+    dic: dictionary containing the necessary data to recreate the object
+    
+    Returns:
+        TiledObject which must be put on the ObjectsTop layer
+    """
+         
+    xml = ET.fromstring(f' \
+        <object id="{dic["id"]}" name="{dic["name"]}" type="{dic["type"]}" gid="{0}" x="{dic["x"]//32}" y="{dic["y"]//32}" width="{dic["width"]}" height="{dic["height"]}"> \
+            <properties> \
+                <property name="linked_id" type="int" value="{dic["properties"]["linked_id"]}"/> \
+                <property name="Placeholder" value="{dic["properties"]["Placeholder"]}"/> \
+            </properties> \
+        </object>')
+    
+    obj = TiledObject(mapInstance.returnMap(),xml)
+    obj.gid = dic["gid"]
     return obj

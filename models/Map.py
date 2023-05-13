@@ -106,7 +106,7 @@ class Map:
         
     def addObject(self, obj, player):
         """
-        Adds an instantiated class into the list of objects.
+        Adds an instantiated class into the list of objects located on the Objects layer.
 
         Args:
             obj: The object to be added.
@@ -123,7 +123,7 @@ class Map:
             if (self.collide_with_objects(ob, obj)):
                 can_be_added = False
         if (obj.type != "Road" and self.collide_with_water(obj.x, obj.y, obj.width,obj.height)):
-                can_be_added = False
+            can_be_added = False
 
         if can_be_added:
             player.money = player.money - int(obj.properties['Price'])
@@ -319,7 +319,7 @@ class Map:
         
     def get_all_objects(self):
         """
-        Gets the list of all Dynamic objects in the map.
+        Gets the list of all Dynamic objects located on the Objects layer of the map.
 
         Returns:
             A list of all Dynamic Tiled objects in the map. If no objects are present, an empty list is returned.
@@ -327,11 +327,18 @@ class Map:
         if self.__objcount == 0:
             return []
         else:
-            res = []
-            for obj in self.__map.objects:
-                if obj.properties['Placeholder'] == "dynamic":
-                    res.append(obj)
-            return res
+            return [obj for obj in self.__map.get_layer_by_name("Objects") if obj.properties['Placeholder'] == 'dynamic']
+        
+    def get_buildings(self):
+        """
+        Gets the list of all buildings which get created on top of the Zones.
+        These buildings are extracted from the ObjectsTop layer of the map.
+        
+        Returns:
+            A list of all Tiled Objects located on the ObjectsTop layer of the map, if no objects are present,
+            an empty list is returned.
+        """
+        return [obj for obj in self.__map.get_layer_by_name("ObjectsTop") if obj.properties['Placeholder'] == 'dynamic']
 
     def get_residential_zones(self):
         """
@@ -372,3 +379,23 @@ class Map:
             return []
         else:
             return [obj for obj in self.get_all_objects() if obj.type == "Stadium" or obj.type == "PoliceDepartment" or obj.type == "Forest"]
+        
+    def get_zone_by_id(self,id):
+        """
+        Returns a Zone based on the given id
+        """
+        for obj in self.get_all_objects():
+            if obj.id == id:
+                return obj
+        return None
+    
+    def add_building(self,building):
+        """
+        Function used to append the Building object onto the ObjectsTop layer.
+        Usecase: after reconstructing the building dictionary, it can be used to append directly to the map
+        
+        Args:
+        bulding: TiledMap object
+        """
+        objLayer = self.__map.get_layer_by_name("ObjectsTop")
+        objLayer.append(building)
