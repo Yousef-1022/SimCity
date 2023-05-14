@@ -4,6 +4,7 @@ from pytmx import TiledObject
 from models.Timer import Timer
 from models.BuildingAdder import form_tiled_obj
 from models.Citizen import *
+import math
 
 def get_files_from_dir(dir_path) -> list:
     """Returns all the files as a list from the given path"""
@@ -88,12 +89,12 @@ def simulate_building_addition(obj: TiledObject, map):
         if ((ppl % quarter == 1) and length < 4):
             create = True
     if (create):
-        building = form_tiled_obj(obj, map)
-        objLayer = map.returnMap().get_layer_by_name("ObjectsTop")
+        building = form_tiled_obj(obj,map)
+        objLayer = obj.parent.get_layer_by_name("ObjectsTop")
         objLayer.append(building)
 
 
-def get_linked_ids_for_obj(obj: TiledObject) -> list[int]:
+def get_linked_ids_for_obj(obj: TiledObject) -> list:
     """
     Gets all the linked objects (Second object layer) representing the buildings
     on top of the current object
@@ -113,15 +114,155 @@ def get_linked_ids_for_obj(obj: TiledObject) -> list[int]:
 
 
 def get_image_size(image_type):
-    if image_type == "ResidentialZone" or image_type == "IndustrialZone" or image_type == "IndustrialZone" or "ServiceZone" == image_type:
+    if image_type == "ResidentialZone" or image_type == "IndustrialZone" or "ServiceZone" == image_type:
         return 128
-    elif image_type == "PoliceDepartment":
-        return 96
+    elif image_type == "PoliceDepartment" or image_type == "Forest" or image_type == "Disaster":
+        return 96      
     elif image_type == "Stadium":
-        return 160
+        return 160 
     else:
         return 32
 
+def calc_d (p1,p2) -> int:
+    """
+    Helper to calculate the distance between the two given points
+    """
+    horizontal_distance=abs(p1[0]-p2[0])
+    vertical_distance=abs(p1[1]-p2[1])
+    distance = (horizontal_distance + vertical_distance)
+    return distance - 1 
+    #distance = math.sqrt((horizontal_distance)**2 + (vertical_distance)**2)
+    #return math.floor(distance)
+    
+def get_area(obj:TiledObject):
+    """
+    Returns a list of (x,y) coordinates that reprsenet the object's area
+    
+    Each point represents coordinates of a Tile
+    """
+    res = []
+    tilex = obj.x // obj.parent.tilewidth
+    tiley = obj.y // obj.parent.tileheight
+    rows = int(obj.width // obj.parent.tilewidth)
+    cols = int(obj.height // obj.parent.tileheight)
+    for i in range(rows):
+        for j in range (cols):
+            res.append((tilex+i,tiley+j))
+    return res
+
+def get_circumference(obj:TiledObject):
+    """
+    Returns a list of (x,y) coordinates the represent the object's circumference
+    
+    Each point represents coordinates of a Tile
+    """
+    tilex = obj.x // obj.parent.tilewidth
+    tiley = obj.y // obj.parent.tileheight
+    rows = int(obj.width // obj.parent.tilewidth)
+    cols = int(obj.height // obj.parent.tileheight)
+    res = []
+    for i in range(rows):
+        res.append((tilex+i,tiley))
+        res.append((tilex+i,tiley+cols-1))
+    for j in range(cols):
+        res.append((tilex,tiley+j))
+        res.append((tilex+rows-1,tiley+j))
+    
+    return list(set(res))
+
+def get_points_looking_at_each_other(Frst:TiledObject,RZone:TiledObject) -> list:
+    """
+    Usage: Forest
+    Returns a list of points that represent the possible view between the Forest and RZone
+    
+    This can serve as two walls of coordinates
+    
+    Each point represents coordinates of the Tile
+    
+    Returns: a List of sorted tuples, half represents an object wall and the other half represents an object wall
+    """
+    
+    c1=get_circumference(Frst)
+    c2=get_circumference(RZone)
+    res=[]
+    min = 69420
+    for p1 in c1:
+        for p2 in c2:
+            d = calc_d(p1,p2)
+            if (d < min):
+                min = d
+                res.clear()
+                res.append(p1)
+                res.append(p2)
+            elif(d == min):
+                res.append(p1)
+                res.append(p2)
+    ans = sorted(res, key=lambda p: (p[0], p[1]))        
+    return ans
+    
+def get_path_between_points(p1,p2) -> list:
+    """
+    Based on the two points, returns a list of points showing the path it takes to reach
+    Doesn't include the two points themselves
+    """
+    if p1[0] < p2[0]:
+        h = [(float(x),float(p1[1])) for x in range(int(p1[0])+1, int(p2[0])+1)]
+        v = []
+        if p1[1] < p2[1]:
+            v = [(float(max(p1[0],p2[0])),float(y)) for y in range(int(p1[1])+1, int(p2[1]))]
+        elif p1[1] == p2[1]:
+            h = h[:-1]
+        else:   
+            v = [(float(max(p1[0],p2[0])),float(y)) for y in range(int(p2[1])+1, int(p1[1]))]
+        return h+v
+    else:
+        h = [(float(x),float(p2[1])) for x in range(int(p2[0])+1, int(p1[0])+1)]
+        v = []
+        if p1[1] < p2[1]:
+            v = [(float(max(p1[0],p2[0])),float(y)) for y in range(int(p1[1])+1, int(p2[1]))]
+        elif p1[1] == p2[1]:
+            h = h[:-1]
+        else:
+            v = [(float(max(p1[0],p2[0])),float(y)) for y in range(int(p2[1])+1, int(p1[1]))]
+        return h+v
+
+def is_satisfaction_zone(SZone:TiledObject):
+    """
+    Check if the given tiledobject is a satisfaction increaser
+    """
+    if (SZone.type == 'Stadium' or SZone.type == 'PoliceDepartment' or SZone.type == 'Forest'):
+        return True
+    return False
+    
+def get_zone_satisfaction(zone:TiledObject):
+    """
+    Returns the amount of satisfaction of the zone
+    """
+    sat = 0.0
+    for c in zone.properties['Citizens']:
+        sat += c.satisfaction
+    return sat/float(len(zone.properties['Citizens']))
+
+def tile_in_which_zone(coords,Zones) -> TiledObject:
+    for zone in Zones:
+        if coords in get_area(zone):
+            return zone
+    return None
+
+def upgrade_zone(zone:TiledObject,mapInstance):
+    """
+    Upgrades the clicked Zone (RZone/CZone/IZone)
+    """
+    zone.properties['Level'] += 1
+    zone.properties['Capacity'] = math.ceil(zone.properties['Capacity'] * 1.5)
+    zone.properties['MaintenanceFee'] *= 0.25
+    lst = get_linked_ids_for_obj(zone)
+    obj_layer = mapInstance.returnMap().get_layer_by_name("ObjectsTop")
+    for obj in lst:
+        obj_layer.remove(obj)
+    building = form_tiled_obj(zone,mapInstance)
+    obj_layer.append(building)
+            
 
 def get_all_connected_roads(road, road_list):
     visited = set()
@@ -143,7 +284,7 @@ def dfs(current_road, visited, road_list):
         # Extract relevant attributes into a tuple
         road_tuple = (road.x, road.y)
         if not is_in_visited(road_tuple, visited):
-            print(f"Visiting road ({road.x}, {road.y})")
+            #print(f"Visiting road ({road.x}, {road.y})")
             dfs(road, visited, road_list)
 
 
@@ -204,6 +345,48 @@ def is_in_visited(road_tuple, visited):
             return True
     return False
 
+def is_there_a_blocker_between(Frst:TiledObject,RZone:TiledObject,lst):
+    """
+    Get the points which represent the view of the RZone and the Forest,
+    Checks if there is a blocker between the Forest and the RZone
+    
+    Args:
+    Frst: Forest TiledObject
+    RZone: ResidentialZone TiledObject
+    lst: list consisting of all dynamic objects
+    """
+    wall = get_points_looking_at_each_other(Frst,RZone)
+    mid = len(wall) // 2
+    l1 = wall[:mid]
+    l2 = wall[mid:]
+    res = [get_path_between_points(p1,p2) for p1, p2 in zip(l1, l2)]
+    flattened_res = [item for sublist in res for item in sublist]
+    for obj in lst:
+        if ((obj != Frst or obj != RZone) and obj.type != 'Road'):
+            s1 = set(get_area(obj))
+            s2 = set(flattened_res)
+            if s1.intersection(s2):
+                return True
+    return False
+
+def handle_citizen_addition_satisfaction(c:Citizen,map):
+    """
+    After assigning a citizen to an RZone, checks nearby SatisfactionIncreasers and adds accordingly
+    """
+    for SZone in map.get_satisfaction_increasers():
+        if (distance_between_two(c.home,SZone) <= SZone.properties['Radius']):
+            if (SZone.type == "Forest"):
+                if(is_there_a_blocker_between(c.home,SZone,map.get_all_objects())):
+                    continue
+                else:
+                    tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
+                    if tmp <= 100:
+                        c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+            else:
+                tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
+                if tmp <= 100:
+                    c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+
 def add_citizens_to_game(map):
     distance_threshold = 5  # Minimum distance between residential and working zones
     possible_citizens = 5 # Max possible amount of citizens to arrive during the time period
@@ -243,13 +426,14 @@ def add_citizens_to_game(map):
 
             # result
             res = (arrival_chance+part2+part3)/3.0
-            zones_with_arrival_chances.append((zone, res))
+            zones_with_arrival_chances.append((zone, res))           
     for zone , arrival_chance in zones_with_arrival_chances:
         n = int ((arrival_chance * possible_citizens) // 100)
         for _ in range(n):
             c = Citizen()
-            assign_to_residential_zone(c,zone, map)
-
+            success_in_assign = assign_to_residential_zone(c,zone, map)
+            if (success_in_assign):
+                handle_citizen_addition_satisfaction(c,map)
 
 def industrial_buildings_nearby(zone, map):
     distance_threshold = 5  # Minimum distance between residential and industrial zones
@@ -261,41 +445,6 @@ def industrial_buildings_nearby(zone, map):
         if distance < distance_threshold:
             industrial_buildings_nearby.append(distance)
     return industrial_buildings_nearby
-
-def get_area(obj:TiledObject):
-    """
-    Returns a list of (x,y) coordinates that reprsenet the object's area
-    
-    Each point represents coordinates of a Tile
-    """
-    res = []
-    tilex = obj.x // obj.parent.tilewidth
-    tiley = obj.y // obj.parent.tileheight
-    rows = int(obj.width // obj.parent.tilewidth)
-    cols = int(obj.height // obj.parent.tileheight)
-    for i in range(rows):
-        for j in range (cols):
-            res.append((tilex+i,tiley+j))
-    return res
-
-def get_circumference(obj:TiledObject):
-    """
-    Returns a list of (x,y) coordinates the represent the object's circumference
-    Each point represents coordinates of a Tile
-    """
-    tilex = obj.x // obj.parent.tilewidth
-    tiley = obj.y // obj.parent.tileheight
-    rows = int(obj.width // obj.parent.tilewidth)
-    cols = int(obj.height // obj.parent.tileheight)
-    res = []
-    for i in range(rows):
-        res.append((tilex+i,tiley))
-        res.append((tilex+i,tiley+cols-1))
-
-    for j in range(cols):
-        res.append((tilex,tiley+j))
-        res.append((tilex+rows-1,tiley+j))
-    return list(set(res))
 
 def get_outer_circumference(obj:TiledObject):
     tilex = (obj.x // 32) 
@@ -352,16 +501,6 @@ def distance_between_two(obj1:TiledObject,obj2:TiledObject):
         return (calc_d(l[0], l[1]) // 2) + 1 
     return min
 
-
-def calc_d (p1,p2) -> int:
-    """
-    Helper to calculate the distance between the two given points
-    """
-    horizontal_distance=abs(p1[0]-p2[0])
-    vertical_distance=abs(p1[1]-p2[1])
-    distance = (horizontal_distance + vertical_distance)
-    return distance - 1
-
 def get_connected_by_road_objects(zone, map):
     roads = map.get_roads() 
     c = get_outer_circumference(zone) 
@@ -397,8 +536,8 @@ def  get_neighboring_object(road, map):
     return None
 
 def assign_zone_citizens_to_work(zone, map):
-    available_work_places = [obj for obj in get_connected_by_road_objects(zone, map) if  len(obj.properties['Citizens']) < obj.properties['Capacity']]
-    print(available_work_places)
+    available_work_places = [obj for obj in get_connected_by_road_objects(zone, map) if len(obj.properties['Citizens']) < obj.properties['Capacity']]
+    #print(available_work_places)
     for citizen in zone.properties['Citizens']:
         if citizen.work == None:
             assign_to_work_zones(citizen, available_work_places, map)
@@ -414,14 +553,14 @@ def assign_to_work_zones(citizen, available_work_places, map):
     
     needed_citizens_for_I_zones = total_capacity_of_I_zones - total_number_of_citizens_in_I_zones
     needed_citizens_for_S_zones = total_capacity_of_S_zones - total_number_of_citizens_in_S_zones
-    print("needed_citizens_for_I_zones", needed_citizens_for_I_zones )
-    print("needed_citizens_for_S_zones", needed_citizens_for_S_zones )
+    #print("needed_citizens_for_I_zones", needed_citizens_for_I_zones )
+    #print("needed_citizens_for_S_zones", needed_citizens_for_S_zones )
     if needed_citizens_for_I_zones  > needed_citizens_for_S_zones:
         assign_citizen_to_random_zone(citizen,I_zones, map)
-        print("adding citizen to I")
+        #print("adding citizen to I")
     else:
         assign_citizen_to_random_zone(citizen,S_zones, map)
-        print("adding citizen to S")
+        #print("adding citizen to S")
 
 def get_num_of_unemployed_in_zone(zone):
     cnt = 0 
@@ -472,7 +611,7 @@ def get_sad_citizens(s_lvl:int) -> list['Citizen']:
     """
     return (c for c in Citizen.citizens.values() if c.satisfaction <= s_lvl)
 
-def assign_to_residential_zone(citizen, RZone,mapInstance):
+def assign_to_residential_zone(citizen, RZone,mapInstance) -> bool:
     """
     Gives the citizen a home, deletes the Citizen if there's a failure assigning a home.
     mapInstance is required to be passed in order to simulate the addition of the buildings on top of the Zone
@@ -487,17 +626,21 @@ def assign_to_residential_zone(citizen, RZone,mapInstance):
     if (add_citizen(RZone,citizen)):
         citizen.home = RZone
         simulate_building_addition(RZone,mapInstance)
+        return True
     else:
         if(citizen.work):
             citizen.work.remove_citizen(citizen)
         del Citizen.citizens[citizen.id]
+        return False
         
-def assign_to_work_zone(citizen,WorkZone,mapInstance):
-    """Assigns the citizen to either a ServiceZone or IndustrialZone, deletes the Citizen if there's a failure assigning work"""
+def assign_to_work_zone(citizen,WorkZone,mapInstance) -> bool:
+    """Assigns the citizen to either a ServiceZone or IndustrialZone, returns a bool value if a failure assigning work happens"""
     if (add_citizen(WorkZone,citizen)):
         citizen.work = WorkZone
         simulate_building_addition(WorkZone,mapInstance)
+        return True
     else:
         print("Can't assign citizen cuz W_zone is full", WorkZone.properties['Capacity'])
+        return False
 
 

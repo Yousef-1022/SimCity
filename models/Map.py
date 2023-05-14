@@ -62,8 +62,8 @@ class Map:
                 tile = self.__map.get_tile_image_by_gid(gid)
                 if tile:
                     map_surface.blit(tile,(x * self.__map.tilewidth, y * self.__map.tileheight))
-                    tile_rect = pygame.Rect(x * self.__map.tilewidth, y * self.__map.tileheight, self.__map.tilewidth, self.__map.tileheight)
-                    pygame.draw.rect(map_surface, (255, 255, 255), tile_rect, 1) #uncomment this to see the grid
+                    #tile_rect = pygame.Rect(x * self.__map.tilewidth, y * self.__map.tileheight, self.__map.tilewidth, self.__map.tileheight)
+                    #pygame.draw.rect(map_surface, (255, 255, 255), tile_rect, 1) #uncomment this to see the grid
 
         for obj in self.__map.objects:
             map_surface.blit(obj.image,(obj.x,obj.y))
@@ -104,13 +104,14 @@ class Map:
         else:
             pass
         
-    def addObject(self, obj, player):
+    def addObject(self, obj, player,init_tree=False):
         """
-        Adds an instantiated class into the list of objects.
+        Adds an instantiated class into the list of objects located on the Objects layer.
 
         Args:
             obj: The object to be added.
             player: The player object is needed to add money.
+            init_tree: Optional boolean value to indicate the creation of initial trees
         """
         can_be_added = True
         objLayer = self.__map.get_layer_by_name("Objects")
@@ -123,11 +124,12 @@ class Map:
             if (self.collide_with_objects(ob, obj)):
                 can_be_added = False
         if (obj.type != "Road" and self.collide_with_water(obj.x, obj.y, obj.width,obj.height)):
-                can_be_added = False
+            can_be_added = False
 
         if can_be_added:
             # if obj.type == "Road":
-            player.money = player.money - int(obj.properties['Price'])
+            if (not init_tree):
+                player.money = player.money - int(obj.properties['Price'])
             objLayer.append(obj)
             self.__objcount += 1
         return obj
@@ -330,7 +332,7 @@ class Map:
         
     def get_all_objects(self):
         """
-        Gets the list of all Dynamic objects in the map.
+        Gets the list of all Dynamic objects located on the Objects layer of the map.
 
         Returns:
             A list of all Dynamic Tiled objects in the map. If no objects are present, an empty list is returned.
@@ -338,11 +340,18 @@ class Map:
         if self.__objcount == 0:
             return []
         else:
-            res = []
-            for obj in self.__map.objects:
-                if obj.properties['Placeholder'] == "dynamic":
-                    res.append(obj)
-            return res
+            return [obj for obj in self.__map.get_layer_by_name("Objects") if obj.properties['Placeholder'] == 'dynamic']
+        
+    def get_buildings(self):
+        """
+        Gets the list of all buildings which get created on top of the Zones.
+        These buildings are extracted from the ObjectsTop layer of the map.
+        
+        Returns:
+            A list of all Tiled Objects located on the ObjectsTop layer of the map, if no objects are present,
+            an empty list is returned.
+        """
+        return [obj for obj in self.__map.get_layer_by_name("ObjectsTop") if obj.properties['Placeholder'] == 'dynamic']
 
     def get_residential_zones(self):
         """
@@ -368,6 +377,164 @@ class Map:
         else:
             return [obj for obj in self.get_all_objects() \
                 if obj.type == "IndustrialZone" or obj.type == "ServiceZone"]
+            
+    def get_satisfaction_increasers(self) -> list:
+        """
+        Gets the Objects which can affect the Citizens satisfaction, eg: Stadium,PoliceDepartment, and Forest
+
+        Args:
+        map: TiledMap object
+
+        Returns:
+        a List full of Dynamic TiledObjects 
+        """
+        if self.__objcount == 0:
+            return []
+        else:
+            return [obj for obj in self.get_all_objects() if obj.type == "Stadium" or obj.type == "PoliceDepartment" or obj.type == "Forest"]
+        
+    def get_zone_by_id(self,id):
+        """
+        Returns a Zone based on the given id
+        """
+        for obj in self.get_all_objects():
+            if obj.id == id:
+                return obj
+        return None
+    
+    def add_building(self,building):
+        """
+        Function used to append the Building object onto the ObjectsTop layer.
+        Usecase: after reconstructing the building dictionary, it can be used to append directly to the map
+        
+        Args:
+        bulding: TiledMap object
+        """
+        objLayer = self.__map.get_layer_by_name("ObjectsTop")
+        objLayer.append(building)
+        
+    def draw_prompt(self, pos, zone):
+        """
+        Draws a prompt on the screen when clicking with the right mouse button
+        
+        Returns:
+        a button (rectangle) which can be used to be clicked
+        """
+        mouse_x, mouse_y = pos[0], pos[1]
+        prompt_width, prompt_height = 180, 180
+        prompt_x = mouse_x - prompt_width // 2
+        prompt_y = mouse_y - prompt_height // 2
+        pygame.draw.rect(self.__screen, (220, 220, 220), (prompt_x, prompt_y, prompt_width, prompt_height))
+        pygame.draw.rect(self.__screen, (150, 150, 150), (prompt_x, prompt_y, prompt_width, prompt_height), 2)
+        font = pygame.font.Font(None, 24)
+        line_height = font.get_linesize()
+        text_padding = 10
+
+        amount_citizens = len(zone.properties['Citizens'])
+        can_classify = False
+        
+        if amount_citizens == 0:
+            sat = 0.0
+            can_classify = True
+        else:
+            sat = sum(c.satisfaction for c in zone.properties['Citizens']) / amount_citizens
+            sat = '{:.2f}'.format(round(sat, 2))
+            can_classify = False
+            
+        lines = [
+            f"Saturation: {amount_citizens}",
+            f"Satisfaction: {sat}",
+            f"Capacity: {zone.properties['Capacity']}",
+            f"Level: {zone.properties['Level']}"
+        ]
+
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (0, 0, 0))
+            text_rect = text.get_rect(center=(prompt_x + prompt_width // 2, prompt_y + line_height * (i + 1) + text_padding))
+            self.__screen.blit(text, text_rect)
+
+        res = None
+        
+        if zone.properties['Level'] < 3 and amount_citizens > 0:
+            button_width, button_height = 150, 30
+            button_x = prompt_x + (prompt_width - button_width) // 2
+            button_y = prompt_y + prompt_height + text_padding - button_height*2
+            button = pygame.draw.rect(self.__screen, (100, 100, 100), (button_x, button_y, button_width, button_height))
+            button_text = font.render("Upgrade", True, (255, 255, 255))
+            button_text_rect = button_text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
+            self.__screen.blit(button_text, button_text_rect)
+            res = button
+
+        elif can_classify:
+            button_width, button_height = 150, 30
+            button_x = prompt_x + (prompt_width - button_width) // 2
+            button_y = prompt_y + prompt_height + text_padding - button_height*2
+            button = pygame.draw.rect(self.__screen, (100, 100, 100), (button_x, button_y, button_width, button_height))
+            button_text = font.render("Reclassify", True, (255, 255, 255))
+            button_text_rect = button_text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
+            self.__screen.blit(button_text, button_text_rect)
+            res = button
+
+        return res
+    
+    def draw_prompt_to_delete(self, pos, zone):
+        """
+        Draws a prompt on the screen when clicking with the right mouse button
+        Used to delete PoliceDepartment or Stadium
+        
+        Returns:
+        a button (rectangle) which can be used to be clicked to delete the zone
+        """
+        mouse_x, mouse_y = pos[0], pos[1]
+        prompt_width, prompt_height = 180, 180
+        prompt_x = mouse_x - prompt_width // 2
+        prompt_y = mouse_y - prompt_height // 2
+        pygame.draw.rect(self.__screen, (220, 220, 220), (prompt_x, prompt_y, prompt_width, prompt_height))
+        pygame.draw.rect(self.__screen, (150, 150, 150), (prompt_x, prompt_y, prompt_width, prompt_height), 2)
+        font = pygame.font.Font(None, 24)
+        line_height = font.get_linesize()
+        text_padding = 10
+        
+        lines = [
+            f"Cost: {zone.properties['Price']}",
+            f"MaintenanceFee: {zone.properties['MaintenanceFee']}",
+            f"Date: {zone.properties['CreationDate']}",
+            f"Radius: {zone.properties['Radius']} tiles",
+            f"SatAdd: {zone.properties['Satisfaction'] * 100}% ",
+        ]
+        
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (0, 0, 0))
+            text_rect = text.get_rect(center=(prompt_x + prompt_width // 2, prompt_y + line_height * (i + 1) + text_padding))
+            self.__screen.blit(text, text_rect)
+            
+        button_width, button_height = 150, 30
+        button_x = prompt_x + (prompt_width - button_width) // 2
+        button_y = prompt_y + prompt_height + text_padding - button_height*2
+        button = pygame.draw.rect(self.__screen, (100, 100, 100), (button_x, button_y, button_width, button_height))
+        button_text = font.render("Remove", True, (255, 255, 255))
+        button_text_rect = button_text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
+        self.__screen.blit(button_text, button_text_rect)
+        return button
+
+
+    def reclassify_zone(self,zone):
+        """
+        Reclassifies the zone if it does not have any citizens
+        
+        Can be used to delete a PoliceDepartment or Stadium
+        """
+        try:
+            if (zone.type == 'PoliceDepartment' or zone.type == 'Stadium'):
+                obj_layer = self.__map.get_layer_by_name("Objects")
+                obj_layer.remove(zone)
+                self.__objcount-=1
+            elif (len(zone.properties['Citizens']) == 0):
+                obj_layer = self.__map.get_layer_by_name("Objects")
+                obj_layer.remove(zone)
+                self.__objcount-=1
+        except Exception as e:
+            print(f"Fatal error to reclassify {zone}. Error: {e}")
     
     def get_service_zones(self):
         """
