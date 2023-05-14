@@ -107,10 +107,10 @@ def get_linked_ids_for_obj(obj:TiledObject) -> list:
 def get_image_size(image_type):
     if image_type == "ResidentialZone" or image_type == "IndustrialZone" or "ServiceZone" == image_type:
         return 128
-    elif image_type == "PoliceDepartment" or image_type == "Forest":
+    elif image_type == "PoliceDepartment" or image_type == "Forest" or image_type == "Disaster":
         return 96      
     elif image_type == "Stadium":
-        return 160    
+        return 160 
     else:
         return 32   
     
