@@ -1,6 +1,6 @@
 import pygame
 from pytmx.util_pygame import load_pygame
-
+from models.Utils import *
 
 class Map:
     """
@@ -132,14 +132,23 @@ class Map:
             self.__objcount += 1
         return obj
     
-    def remove_obj(self, x, y, obj_type):
+    def remove_road(self, x, y, obj_type, map):
         obj_layer = self.__map.get_layer_by_name("Objects")
+        roads = self.get_all_roads()
         for obj in obj_layer:
             if (obj.x // 32)== x and (obj.y // 32) == y and obj.type == obj_type:
+                # connected_roads = get_all_connected_roads(obj, roads) # SHOULD BE ADDED LATER
+                # if(len(get_neighboring_objects(connected_roads, map))) <= 1:
                 obj_layer.remove(obj)
                 self.__objcount-=1
                 break
+            # else:
+            #     print("Can't demolish a road because it connects objects!!")
 
+    def get_all_roads(self):
+        objects =  self.__map.get_layer_by_name("Objects")     
+        return [obj for obj in objects if obj.type == "Road"]
+    
     def getClickedTile(self,mousePos):
         """
         Returns the map's actual tile coordinates based on the mouse position.
