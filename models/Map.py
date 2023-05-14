@@ -399,3 +399,80 @@ class Map:
         """
         objLayer = self.__map.get_layer_by_name("ObjectsTop")
         objLayer.append(building)
+        
+    def draw_prompt(self, pos, zone):
+        """
+        Draws a prompt on the screen when clicking with the right mouse button
+        
+        Returns:
+        a button (rectangle) which can be used to be clicked
+        """
+        mouse_x, mouse_y = pos[0], pos[1]
+        prompt_width, prompt_height = 180, 180
+        prompt_x = mouse_x - prompt_width // 2
+        prompt_y = mouse_y - prompt_height // 2
+        pygame.draw.rect(self.__screen, (220, 220, 220), (prompt_x, prompt_y, prompt_width, prompt_height))
+        pygame.draw.rect(self.__screen, (150, 150, 150), (prompt_x, prompt_y, prompt_width, prompt_height), 2)
+        font = pygame.font.Font(None, 24)
+        line_height = font.get_linesize()
+        text_padding = 10
+
+        amount_citizens = len(zone.properties['Citizens'])
+        can_classify = False
+        
+        if amount_citizens == 0:
+            sat = 0.0
+            can_classify = True
+        else:
+            sat = sum(c.satisfaction for c in zone.properties['Citizens']) / amount_citizens
+            sat = '{:.2f}'.format(round(sat, 2))
+            can_classify = False
+            
+        lines = [
+            f"Saturation: {amount_citizens}",
+            f"Satisfaction: {sat}",
+            f"Capacity: {zone.properties['Capacity']}",
+            f"Level: {zone.properties['Level']}"
+        ]
+
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (0, 0, 0))
+            text_rect = text.get_rect(center=(prompt_x + prompt_width // 2, prompt_y + line_height * (i + 1) + text_padding))
+            self.__screen.blit(text, text_rect)
+
+        res = None
+        
+        if zone.properties['Level'] < 3 and amount_citizens > 0:
+            button_width, button_height = 150, 30
+            button_x = prompt_x + (prompt_width - button_width) // 2
+            button_y = prompt_y + prompt_height + text_padding - button_height*2
+            button = pygame.draw.rect(self.__screen, (100, 100, 100), (button_x, button_y, button_width, button_height))
+            button_text = font.render("Upgrade", True, (255, 255, 255))
+            button_text_rect = button_text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
+            self.__screen.blit(button_text, button_text_rect)
+            res = button
+
+        elif can_classify:
+            button_width, button_height = 150, 30
+            button_x = prompt_x + (prompt_width - button_width) // 2
+            button_y = prompt_y + prompt_height + text_padding - button_height*2
+            button = pygame.draw.rect(self.__screen, (100, 100, 100), (button_x, button_y, button_width, button_height))
+            button_text = font.render("Reclassify", True, (255, 255, 255))
+            button_text_rect = button_text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
+            self.__screen.blit(button_text, button_text_rect)
+            res = button
+
+        return res
+
+
+    def reclassify_zone(self,zone):
+        """
+        Reclassifies the zone if it does not have any citizens
+        """
+        try:
+            if (len(zone.properties['Citizens']) == 0):
+                obj_layer = self.__map.get_layer_by_name("Objects")
+                obj_layer.remove(zone)
+                self.__objcount-=1
+        except Exception as e:
+            print(f"Fatal error to reclassify {zone}. Error: {e}")

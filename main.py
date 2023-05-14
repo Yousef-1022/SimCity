@@ -108,6 +108,40 @@ def handle_satisfaction_zone_removal(SZone:TiledObject):
             for c in RZone.properties['Citizens']:
                 c.satisfaction -= (SZone.properties['Satisfaction']*c.satisfaction)
 
+def handle_prompt(clckd_crds,clckd_zn,upgrd,rclssfy):
+    """
+    Handles prompt when viewing the information of the Zone
+    """
+    if clckd_crds:
+        if (clckd_zn):
+            # Handle already clicked Zone
+            if(clckd_zn.properties['Level'] <= 3):
+                btn = map.draw_prompt(clckd_crds,clckd_zn)
+                if (len(clckd_zn.properties['Citizens']) == 0):
+                    upgrd = None
+                    rclssfy = btn
+                else:
+                    upgrd = btn
+                    rclssfy = None
+            else:
+                upgrd = rclssfy = None
+        else:
+            # Reterive the Zone if not clicked in the first place
+            zones = map.get_residential_zones() + map.get_work_zones()
+            clckd_zn = tile_in_which_zone(map.getClickedTile(clckd_crds),zones)
+            if (clckd_zn):
+                if(clckd_zn.properties['Level'] <= 3):
+                    btn = map.draw_prompt(clckd_crds,clckd_zn)
+                    if (len(clckd_zn.properties['Citizens']) == 0):
+                        upgrd = None
+                        rclssfy = btn
+                    else:
+                        upgrd = btn
+                        rclssfy = None
+                else:
+                    upgrd = rclssfy = None
+    return clckd_crds, clckd_zn, upgrd, rclssfy
+    
 
 def run():
     normal_cursor = True
@@ -119,6 +153,12 @@ def run():
     for i in range (1,11):
         c = Citizen()
         initial_citizens.append(c)
+    
+    clicked_cords = None
+    clicked_zone = None
+    upgrade = None
+    reclassify = None
+
     
     while True:
         cursorImgRect.center = pygame.mouse.get_pos()
@@ -183,6 +223,7 @@ def run():
                         else:
                             obj.properties['Year'] += 1
                             obj.properties['Satisfaction'] += 0.03
+                            # Handle tree update
                             if obj.properties['Year'] == 10:
                                 obj.properties['Mature'] = True
                 # Handle Zones Expense
@@ -203,13 +244,31 @@ def run():
             
             
         for event in pygame.event.get(): # mouse button click, keyboard, or the x button.
+            
+            mouse_pos = pygame.mouse.get_pos()
+            
             if pygame.mouse.get_pressed()[2]:
                 normal_cursor = True
+                clicked_zone = upgrade = reclassify = None
+                clicked_cords = mouse_pos
+                
+            if pygame.mouse.get_pressed()[0]:
+                if reclassify:
+                    if reclassify.collidepoint(mouse_pos):
+                        map.reclassify_zone(clicked_zone)
+                        player.money += (float(clicked_zone.properties["Price"])*0.5)
+                        clicked_cords = clicked_zone = upgrade = reclassify = None
+                if upgrade:
+                    if upgrade.collidepoint(mouse_pos):
+                        upgrade_zone(clicked_zone,map)
+                        player.money -= ((float(clicked_zone.properties["Price"])*0.5) * (clicked_zone.properties["Level"]+0.25))
+                clicked_cords = clicked_zone = upgrade = reclassify = None
+
+            
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONUP:    # Cursor handling
-                mouse_pos = pygame.mouse.get_pos()
                 selected_icon = builder_panel.get_selected_icon_index(mouse_pos) 
                 if (not normal_cursor):
                     x,y = map.getClickedTile(mouse_pos)
@@ -244,10 +303,15 @@ def run():
                     normal_cursor = False
                     class_tobuild = icons[selected_icon][1]
             elif event.type == pygame.KEYDOWN:  # Scroll handling
+                clicked_cords = clicked_zone = upgrade = reclassify = None
                 map.handleScroll(event.key)
         
         if not normal_cursor:
+            clicked_cords = clicked_zone = upgrade = reclassify = None
             SCREEN.blit(cursorImg, cursorImgRect)
+        
+        clicked_cords,clicked_zone,upgrade,reclassify = handle_prompt(clicked_cords,clicked_zone,upgrade,reclassify)
+                
         # Limit the frame rate to 60 FPS
         timer.update_time(paused)
         timer.tick(60)

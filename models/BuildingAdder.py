@@ -45,7 +45,7 @@ def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
     the_name = ""
     xtile = TiledObj.x
     ytile = TiledObj.y
-    if (TiledObj.name == "RZone"):
+    if (TiledObj.name == "RZone" and TiledObj.properties["Level"] == 1):
         the_name = f'RZoneHouse{random.randint(1,4)}'
         occupied = get_occupied_tiles(TiledObj)
         possible = get_possible_coords(TiledObj)

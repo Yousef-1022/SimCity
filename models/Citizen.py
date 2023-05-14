@@ -67,7 +67,8 @@ class Citizen:
         """
         if (add_citizen(RZone,self)):
             self.home = RZone
-            simulate_building_addition(RZone,mapInstance)
+            if(RZone.properties['Level'] == 1):
+                simulate_building_addition(RZone,mapInstance)
         else:
             if(self.work):
                 self.work.remove_citizen(self)

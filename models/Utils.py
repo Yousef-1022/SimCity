@@ -250,3 +250,24 @@ def get_zone_satisfaction(zone:TiledObject):
     for c in zone.properties['Citizens']:
         sat += c.satisfaction
     return sat/float(len(zone.properties['Citizens']))
+
+def tile_in_which_zone(coords,Zones) -> TiledObject:
+    for zone in Zones:
+        if coords in get_area(zone):
+            return zone
+    return None
+
+def upgrade_zone(zone:TiledObject,mapInstance):
+    """
+    Upgrades the clicked Zone (RZone/CZone/IZone)
+    """
+    zone.properties['Level'] += 1
+    zone.properties['Capacity'] *= 1.5
+    zone.properties['MaintenanceFee'] *= 0.25
+    lst = get_linked_ids_for_obj(zone)
+    obj_layer = mapInstance.returnMap().get_layer_by_name("ObjectsTop")
+    for obj in lst:
+        obj_layer.remove(obj)
+    building = form_tiled_obj(zone,mapInstance)
+    obj_layer.append(building)
+            
