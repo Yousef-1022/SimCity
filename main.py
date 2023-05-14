@@ -90,11 +90,23 @@ def handle_satisfaction_zone_addition(SZone:TiledObject):
     for RZone in map.get_residential_zones():
         if (distance_between_two(RZone,SZone) <= SZone.properties['Radius']):
             if (SZone.type == "Forest"):
-                if(is_there_a_blocker_between(RZone,SZone,map.get_all_objects())):
+                if(is_there_a_blocker_between(SZone,RZone,map.get_all_objects())):
                     continue
                 else:
                     for c in RZone.properties['Citizens']:
                         c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+            else:
+                for c in RZone.properties['Citizens']:
+                    c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+                    
+def handle_tree_growth(SZone:TiledObject):
+    """
+    After the tree grows, it must affect the nearby citizens
+    """
+    for RZone in map.get_residential_zones():
+        if (distance_between_two(RZone,SZone) <= SZone.properties['Radius']):
+            if(is_there_a_blocker_between(SZone,RZone,map.get_all_objects())):
+                continue
             else:
                 for c in RZone.properties['Citizens']:
                     c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
@@ -114,22 +126,12 @@ def handle_prompt(clckd_crds,clckd_zn,upgrd,rclssfy):
     """
     if clckd_crds:
         if (clckd_zn):
-            # Handle already clicked Zone
-            if(clckd_zn.properties['Level'] <= 3):
-                btn = map.draw_prompt(clckd_crds,clckd_zn)
-                if (len(clckd_zn.properties['Citizens']) == 0):
-                    upgrd = None
-                    rclssfy = btn
-                else:
-                    upgrd = btn
-                    rclssfy = None
+            # Handle deletion of PoliceDepartment or Stadium
+            if(clckd_zn.type == "PoliceDepartment" or clckd_zn.type == "Stadium"):
+                upgrd = None
+                rclssfy = map.draw_prompt_to_delete(clckd_crds,clckd_zn)
             else:
-                upgrd = rclssfy = None
-        else:
-            # Reterive the Zone if not clicked in the first place
-            zones = map.get_residential_zones() + map.get_work_zones()
-            clckd_zn = tile_in_which_zone(map.getClickedTile(clckd_crds),zones)
-            if (clckd_zn):
+                # Handle already clicked Zone (RZone,CZone,IZone)
                 if(clckd_zn.properties['Level'] <= 3):
                     btn = map.draw_prompt(clckd_crds,clckd_zn)
                     if (len(clckd_zn.properties['Citizens']) == 0):
@@ -140,9 +142,40 @@ def handle_prompt(clckd_crds,clckd_zn,upgrd,rclssfy):
                         rclssfy = None
                 else:
                     upgrd = rclssfy = None
+        else:
+            # Reterive the Zone if not clicked in the first place
+            zones = [obj for obj in map.get_all_objects() if (obj.type != "Forest" and obj.type != "Road")]
+            clckd_zn = tile_in_which_zone(map.getClickedTile(clckd_crds),zones)
+            if (clckd_zn):
+                # Handle deletion of PoliceDepartment or Stadium
+                if(clckd_zn.type == "PoliceDepartment" or clckd_zn.type == "Stadium"):
+                    upgrd = None
+                    rclssfy = map.draw_prompt_to_delete(clckd_crds,clckd_zn)
+                else:
+                    # Handle already clicked Zone (RZone,CZone,IZone)
+                    if(clckd_zn.properties['Level'] <= 3):
+                        btn = map.draw_prompt(clckd_crds,clckd_zn)
+                        if (len(clckd_zn.properties['Citizens']) == 0):
+                            upgrd = None
+                            rclssfy = btn
+                        else:
+                            upgrd = btn
+                            rclssfy = None
+                    else:
+                        upgrd = rclssfy = None
     return clckd_crds, clckd_zn, upgrd, rclssfy
-    
 
+def randomize_initial_forests():
+    """
+    Creates random forests at the start of the game
+    """
+    coords = [(11,5),(28,33),(6,16),(32,23)]
+    num_choices = random.randint(1, len(coords))
+    to_insert = random.sample(coords, num_choices)
+    for p in to_insert:
+        frst = Forest(p[0],p[1],timer.get_current_date_str(),map)
+        map.addObject(frst.instance,player,True)  
+    
 def run():
     normal_cursor = True
     cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer",icons))
@@ -153,6 +186,7 @@ def run():
     for i in range (1,11):
         c = Citizen()
         initial_citizens.append(c)
+    randomize_initial_forests()
     
     clicked_cords = None
     clicked_zone = None
@@ -194,6 +228,7 @@ def run():
                         if RZone.properties['Capacity'] != len(RZone.properties['Citizens']):
                             c = Citizen()
                             c.assign_to_residential_zone(RZone,map)
+                            handle_citizen_addition_satisfaction(c)
                 else:
                     # Random amount of sad citizens leave
                     lst = Citizen.get_sad_citizens(20)
@@ -223,7 +258,7 @@ def run():
                         else:
                             obj.properties['Year'] += 1
                             obj.properties['Satisfaction'] += 0.03
-                            # Handle tree update
+                            handle_tree_growth(obj)
                             if obj.properties['Year'] == 10:
                                 obj.properties['Mature'] = True
                 # Handle Zones Expense
@@ -280,9 +315,9 @@ def run():
                         obj = ""
                         if class_obj is not None:
                             if class_tobuild == "Road":
-                                obj = class_obj(x,y,timer.get_current_date_str(),map)    # Change
+                                obj = class_obj(x,y,timer.get_current_date_str(),map)
                             else:
-                                obj = class_obj(x - 1,y - 1,timer.get_current_date_str(),map)    # Change
+                                obj = class_obj(x - 1,y - 1,timer.get_current_date_str(),map)
 
                             map.addObject(obj.instance,player)
                             # Satisfaction handling for: Forest, Stadium, and PoliceDepartment
@@ -292,7 +327,6 @@ def run():
                             class_tobuild = -1
                         else:
                             map.remove_obj(x,y,"Road")
-                            #print(f"Can't build class: {class_tobuild} because it doesn't exist")
                         normal_cursor = True
                 if selected_icon != None:
                     # Handle cursor at selection

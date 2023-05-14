@@ -26,9 +26,9 @@ class PoliceDepartment:
                     <property name="CreationDate" value="{self.creationTime}"/> \
                     <property name="Price" value="{self.price}"/> \
                     <property name="Revenue" type="int" value="0"/> \
-                    <property name="MaintenanceFee" type="int" value="0"/> \
+                    <property name="MaintenanceFee" type="int" value="{int(self.price/2)}"/> \
                     <property name="Radius" type="int" value="4"/> \
-                    <property name="Satisfaction" type="float" value="0.10"/> \
+                    <property name="Satisfaction" type="float" value="0.15"/> \
                 </properties> \
             </object>')
         obj = TiledObject(mapInstance.returnMap(),xml)

@@ -62,8 +62,8 @@ class Map:
                 tile = self.__map.get_tile_image_by_gid(gid)
                 if tile:
                     map_surface.blit(tile,(x * self.__map.tilewidth, y * self.__map.tileheight))
-                    tile_rect = pygame.Rect(x * self.__map.tilewidth, y * self.__map.tileheight, self.__map.tilewidth, self.__map.tileheight)
-                    pygame.draw.rect(map_surface, (255, 255, 255), tile_rect, 1) #uncomment this to see the grid
+                    #tile_rect = pygame.Rect(x * self.__map.tilewidth, y * self.__map.tileheight, self.__map.tilewidth, self.__map.tileheight)
+                    #pygame.draw.rect(map_surface, (255, 255, 255), tile_rect, 1) #uncomment this to see the grid
 
         for obj in self.__map.objects:
             map_surface.blit(obj.image,(obj.x,obj.y))
@@ -104,13 +104,14 @@ class Map:
         else:
             pass
         
-    def addObject(self, obj, player):
+    def addObject(self, obj, player,init_tree=False):
         """
         Adds an instantiated class into the list of objects located on the Objects layer.
 
         Args:
             obj: The object to be added.
             player: The player object is needed to add money.
+            init_tree: Optional boolean value to indicate the creation of initial trees
         """
         can_be_added = True
         objLayer = self.__map.get_layer_by_name("Objects")
@@ -126,7 +127,8 @@ class Map:
             can_be_added = False
 
         if can_be_added:
-            player.money = player.money - int(obj.properties['Price'])
+            if (not init_tree):
+                player.money = player.money - int(obj.properties['Price'])
             objLayer.append(obj)
             self.__objcount += 1
 
@@ -463,14 +465,60 @@ class Map:
             res = button
 
         return res
+    
+    def draw_prompt_to_delete(self, pos, zone):
+        """
+        Draws a prompt on the screen when clicking with the right mouse button
+        Used to delete PoliceDepartment or Stadium
+        
+        Returns:
+        a button (rectangle) which can be used to be clicked to delete the zone
+        """
+        mouse_x, mouse_y = pos[0], pos[1]
+        prompt_width, prompt_height = 180, 180
+        prompt_x = mouse_x - prompt_width // 2
+        prompt_y = mouse_y - prompt_height // 2
+        pygame.draw.rect(self.__screen, (220, 220, 220), (prompt_x, prompt_y, prompt_width, prompt_height))
+        pygame.draw.rect(self.__screen, (150, 150, 150), (prompt_x, prompt_y, prompt_width, prompt_height), 2)
+        font = pygame.font.Font(None, 24)
+        line_height = font.get_linesize()
+        text_padding = 10
+        
+        lines = [
+            f"Cost: {zone.properties['Price']}",
+            f"MaintenanceFee: {zone.properties['MaintenanceFee']}",
+            f"Date: {zone.properties['CreationDate']}",
+            f"Radius: {zone.properties['Radius']} tiles",
+            f"SatAdd: {zone.properties['Satisfaction'] * 100}% ",
+        ]
+        
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (0, 0, 0))
+            text_rect = text.get_rect(center=(prompt_x + prompt_width // 2, prompt_y + line_height * (i + 1) + text_padding))
+            self.__screen.blit(text, text_rect)
+            
+        button_width, button_height = 150, 30
+        button_x = prompt_x + (prompt_width - button_width) // 2
+        button_y = prompt_y + prompt_height + text_padding - button_height*2
+        button = pygame.draw.rect(self.__screen, (100, 100, 100), (button_x, button_y, button_width, button_height))
+        button_text = font.render("Remove", True, (255, 255, 255))
+        button_text_rect = button_text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
+        self.__screen.blit(button_text, button_text_rect)
+        return button
 
 
     def reclassify_zone(self,zone):
         """
         Reclassifies the zone if it does not have any citizens
+        
+        Can be used to delete a PoliceDepartment or Stadium
         """
         try:
-            if (len(zone.properties['Citizens']) == 0):
+            if (zone.type == 'PoliceDepartment' or zone.type == 'Stadium'):
+                obj_layer = self.__map.get_layer_by_name("Objects")
+                obj_layer.remove(zone)
+                self.__objcount-=1
+            elif (len(zone.properties['Citizens']) == 0):
                 obj_layer = self.__map.get_layer_by_name("Objects")
                 obj_layer.remove(zone)
                 self.__objcount-=1
