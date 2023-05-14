@@ -11,6 +11,23 @@ class Citizen:
         Citizen.__next_id += 1
         Citizen.__citizens[self.id] = self
     
+    # @classmethod
+    def get_home(self):
+        if self.home:
+            return self.home.id
+        return ""
+        # return 0
+    
+    @classmethod
+    def get_work(self):
+        if self.work:
+            return self.work.id
+        return ""
+
+    @classmethod
+    def get_satisfaction(self):
+        return self.satisfaction
+    
     @classmethod
     def get_citizen_by_id(self,id:int) -> 'Citizen':
         """Returns a Citizen object using the id"""
@@ -31,6 +48,21 @@ class Citizen:
         """Returns the total number of citizens"""
         return len(Citizen.__citizens)
     
+    @classmethod
+    def get__citizens_len(self):
+        """Returns all citizens"""
+        return len(Citizen.__citizens)
+
+    @classmethod
+    def get_all_citizens(cls):
+        """Returns a copy of the __citizens dictionary"""
+        return cls.__citizens.copy()
+
+    @classmethod
+    def set_all_citizens(self, citizens):
+        """sit all citizens from the loaded game"""
+        self.__citizens = citizens
+
     @classmethod
     def delete_citizen(self,c:'Citizen'):
         """Removes a citizen"""

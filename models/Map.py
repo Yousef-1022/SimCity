@@ -333,6 +333,9 @@ class Map:
                     res.append(obj)
             return res
 
+    # def set_all_objects(self, objs):
+
+
     def get_residential_zones(self):
         """
         Get the list of all the ResidentialZones
@@ -357,3 +360,7 @@ class Map:
         else:
             return [obj for obj in self.get_all_objects() \
                 if obj.type == "IndustrialZone" or obj.type == "ServiceZone"]
+        
+    def increase_object_count(self):
+        self.__objcount += 1 
+        
