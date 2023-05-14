@@ -126,10 +126,12 @@ class Map:
                 can_be_added = False
 
         if can_be_added:
+            # if obj.type == "Road":
             player.money = player.money - int(obj.properties['Price'])
             objLayer.append(obj)
             self.__objcount += 1
-
+        return obj
+    
     def remove_obj(self, x, y, obj_type):
         obj_layer = self.__map.get_layer_by_name("Objects")
         for obj in obj_layer:
@@ -357,3 +359,36 @@ class Map:
         else:
             return [obj for obj in self.get_all_objects() \
                 if obj.type == "IndustrialZone" or obj.type == "ServiceZone"]
+    
+    def get_service_zones(self):
+        """
+        Get service zones
+        
+        Returns:
+            service zones
+        """
+        if self.__objcount == 0:
+            return []
+        else:
+            return [obj for obj in self.get_all_objects() \
+                if  obj.type == "ServiceZone"]
+        
+    def get_insustrial_zones(self):
+        """
+        # Get Industrial zones
+        
+        Returns:
+            service zones
+        """
+        if self.__objcount == 0:
+            return []
+        else:
+            return [obj for obj in self.get_all_objects() \
+                if  obj.type == "IndustrialZone"]
+        
+    def get_roads(self):
+        if self.__objcount == 0:
+            return []
+        else:
+            return [obj for obj in self.get_all_objects() \
+                if  obj.type == "Road"] 

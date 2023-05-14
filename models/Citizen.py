@@ -1,3 +1,4 @@
+import random
 from models.Utils import add_citizen , simulate_building_addition
 
 class Citizen:
@@ -6,7 +7,7 @@ class Citizen:
     def __init__(self):
         self.home = None
         self.work = None
-        self.satisfaction = 50 
+        self.satisfaction = random.randint(50, 100) 
         self.id = Citizen.__next_id
         Citizen.__next_id += 1
         Citizen.__citizens[self.id] = self
@@ -30,14 +31,6 @@ class Citizen:
     def get_total_citizens(self) -> int:
         """Returns the total number of citizens"""
         return len(Citizen.__citizens)
-    
-    @classmethod
-    def delete_citizen(self,c:'Citizen'):
-        """Removes a citizen"""
-        if c.id in Citizen.__citizens:
-            c.home.remove_citizen(c)
-            c.work.remove_citizen(c)
-            del Citizen.__citizens[c.id]
     
     @classmethod
     def get_sad_citizens(self,s_lvl:int) -> list['Citizen']:
@@ -73,10 +66,10 @@ class Citizen:
                 self.work.remove_citizen(self)
             del Citizen.__citizens[self.id]
          
-    def assign_to_work_zone(self,WorkZone):
+    def assign_to_work_zone(self,WorkZone,mapInstance):
         """Assigns the citizen to either a ServiceZone or IndustrialZone, deletes the Citizen if there's a failure assigning work"""
         if (add_citizen(WorkZone,self)):
             self.work = WorkZone
+            simulate_building_addition(WorkZone,mapInstance)
         else:
-            self.home.remove_citizen(self)
-            del Citizen.__citizens[self.id]
+            print("Can't assign citizen cuz W_zone is full", WorkZone.properties['Capacity'])
