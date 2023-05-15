@@ -1,7 +1,7 @@
 import pygame , sys
 import pickle
-from MenuClass import MenuClass
 from models.Map import Map
+from models.BuildingAdder import *
 from models.Panels.BuilderPanel import BuilderPanel
 from models.Panels.DescriptionPanel import DescriptionPanel
 from models.Panels.PricePanel import PricePanel
@@ -10,6 +10,7 @@ from models.zones.IndustrialZone import IndustrialZone
 from models.zones.ServiceZone import ServiceZone
 from models.PoliceDepartment import PoliceDepartment
 from models.Stadium import Stadium
+from models.Forest import Forest
 from models.Player import Player
 from models.Timer import Timer
 from models.Utils import *
@@ -34,7 +35,7 @@ price_panel = PricePanel(96, SCREEN.get_height() - 32, SCREEN.get_width() - 96, 
 icons_dir = "./Map/Assets/Builder_assets/"
 icons = [get_icon_and_type(f,icons_dir) for f in get_files_from_dir(icons_dir)]
 map = Map(SCREEN, builder_panel.getWidth(), description_panel.getHeight())
-class_tobuild = ""
+global class_tobuild
 game_loop = True
 
 
@@ -124,14 +125,20 @@ def save_game(running, game_loop):
         obj['properties']['Citizens'] = []
         parents.append(obj['parent'])
         obj['parent'] = ""
+        if obj['type'][-4:] == 'Zone':
+            for building in obj['properties']['Buildings']:
+                building['parent'] = ""
 
-    # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
     print(list_of_tiled_objs)
+    # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
     with open('game_state.pickle', 'wb') as f:
         pickle.dump(citizens, f)
         pickle.dump(list_of_tiled_objs, f)
     for i in range(len(list_of_tiled_objs)):
         list_of_tiled_objs[i]['parent'] = parents[i]
+        if list_of_tiled_objs[i]['type'][-4:] == 'Zone':
+            for building in list_of_tiled_objs[i]['properties']['Buildings']:
+                building['parent'] = map.returnMap()
 
     game_loop = True
     run(running, False)
@@ -192,6 +199,107 @@ def show_menu(screen, running, game_loop):
                     game_loop = action(running, game_loop)
                     menu_loop = False
 
+def handle_satisfaction_zone_addition(SZone:TiledObject):
+    """
+    After the player creates a Stadium, PoliceDepartment, or Forest, it checks nearby Citizens and adds satisfaction
+    """
+    for RZone in map.get_residential_zones():
+        if (distance_between_two(RZone,SZone) <= SZone.properties['Radius']):
+            if (SZone.type == "Forest"):
+                if(is_there_a_blocker_between(SZone,RZone,map.get_all_objects())):
+                    continue
+                else:
+                    for c in RZone.properties['Citizens']:
+                        tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
+                        if tmp <= 100:
+                            c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+            else:
+                for c in RZone.properties['Citizens']:
+                    tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
+                    if tmp <= 100:
+                        c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+                    
+def handle_tree_growth(SZone:TiledObject):
+    """
+    After the tree grows, it must affect the nearby citizens
+    """
+    for RZone in map.get_residential_zones():
+        if (distance_between_two(RZone,SZone) <= SZone.properties['Radius']):
+            if(is_there_a_blocker_between(SZone,RZone,map.get_all_objects())):
+                continue
+            else:
+                for c in RZone.properties['Citizens']:
+                    tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
+                    if tmp <= 100:
+                        c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
+            
+def handle_satisfaction_zone_removal(SZone:TiledObject):
+    """
+    After the player deletes a Stadium or PoliceDepartment, it checks nearby Citizens and decreases satisfaction
+    """
+    for RZone in map.get_residential_zones():
+        if (distance_between_two(RZone,SZone) <= SZone.properties['Radius'] and SZone.type != "Forest"):
+            for c in RZone.properties['Citizens']:
+                tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
+                if tmp >= 0:
+                    c.satisfaction -= (SZone.properties['Satisfaction']*c.satisfaction)
+
+def handle_prompt(clckd_crds,clckd_zn,upgrd,rclssfy):
+    """
+    Handles prompt when viewing the information of the Zone
+    """
+    if clckd_crds:
+        if (clckd_zn):
+            # Handle deletion of PoliceDepartment or Stadium
+            if(clckd_zn.type == "PoliceDepartment" or clckd_zn.type == "Stadium"):
+                upgrd = None
+                rclssfy = map.draw_prompt_to_delete(clckd_crds,clckd_zn)
+            else:
+                # Handle already clicked Zone (RZone,CZone,IZone)
+                if(clckd_zn.properties['Level'] <= 3):
+                    btn = map.draw_prompt(clckd_crds,clckd_zn)
+                    if (len(clckd_zn.properties['Citizens']) == 0):
+                        upgrd = None
+                        rclssfy = btn
+                    else:
+                        upgrd = btn
+                        rclssfy = None
+                else:
+                    upgrd = rclssfy = None
+        else:
+            # Reterive the Zone if not clicked in the first place
+            zones = [obj for obj in map.get_all_objects() if (obj.type != "Forest" and obj.type != "Road")]
+            clckd_zn = tile_in_which_zone(map.getClickedTile(clckd_crds),zones)
+            if (clckd_zn):
+                # Handle deletion of PoliceDepartment or Stadium
+                if(clckd_zn.type == "PoliceDepartment" or clckd_zn.type == "Stadium"):
+                    upgrd = None
+                    rclssfy = map.draw_prompt_to_delete(clckd_crds,clckd_zn)
+                else:
+                    # Handle already clicked Zone (RZone,CZone,IZone)
+                    if(clckd_zn.properties['Level'] <= 3):
+                        btn = map.draw_prompt(clckd_crds,clckd_zn)
+                        if (len(clckd_zn.properties['Citizens']) == 0):
+                            upgrd = None
+                            rclssfy = btn
+                        else:
+                            upgrd = btn
+                            rclssfy = None
+                    else:
+                        upgrd = rclssfy = None
+    return clckd_crds, clckd_zn, upgrd, rclssfy
+
+def randomize_initial_forests():
+    """
+    Creates random forests at the start of the game
+    """
+    coords = [(11,5),(28,33),(6,16),(32,23)]
+    num_choices = random.randint(1, len(coords))
+    to_insert = random.sample(coords, num_choices)
+    for p in to_insert:
+        frst = Forest(p[0],p[1],timer.get_current_date_str(),map)
+        map.addObject(frst.instance,player,True)  
+    
 def run(running, loaded_game):
     normal_cursor = True
     cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer",icons))
@@ -201,34 +309,71 @@ def run(running, loaded_game):
     TAX_VARIABLE = 0.05
     game_speed  = 1
     global game_loop
-
+    class_tobuild = ""
     # handle saved tiled objects
+    initial_citizens = []
     if loaded_game:
         with open('game_state.pickle', 'rb') as f:
             loaded_citizens = pickle.load(f)
             loaded_objs = pickle.load(f)
+        #print(loaded_citizens)
         # Handle object creation
         for loaded_obj in loaded_objs:
             class_tobuild = loaded_obj['type']
             class_obj = globals().get(class_tobuild)
             obj = ""
             if class_obj is not None:
-                if class_tobuild == "Road":
-                    obj = class_obj(loaded_obj['x']//32,loaded_obj['y']//32,timer.get_current_date_str(),map)    # Change
-                else:
-                    obj = class_obj(loaded_obj['x']//32 - 1,loaded_obj['y']//32 - 1,timer.get_current_date_str(),map)    # Change
+                obj = class_obj(loaded_obj['x']//32,loaded_obj['y']//32 ,timer.get_current_date_str(),map)    # Change
+                if (loaded_obj['type'][-4:] == 'Zone'):
+                    obj.instance.properties['Level'] = loaded_obj['properties']['Level']
+                    obj.instance.properties['Capacity'] = loaded_obj['properties']['Capacity']
+                    obj.instance.properties['MaintenanceFee'] = loaded_obj['properties']['MaintenanceFee']
+                    obj.instance.properties['CreationDate'] = loaded_obj['properties']['CreationDate']
+                    obj.instance.properties['Revenue'] = loaded_obj['properties']['Revenue']
                 map.addObject(obj.instance,player)
                 class_tobuild = -1
             else:
                 map.remove_obj(loaded_obj['x']//32,loaded_obj['y']//32,"Road")
             normal_cursor = True
+            print("NIGGER:",loaded_obj['properties'])
+            if loaded_obj['type'][-4:] == 'Zone':
+                for building in loaded_obj['properties']['Buildings']:
+                    print(loaded_obj['name'],"THE NAME <-- GOES TO BUILDING",loaded_obj['properties']['Buildings'])
+                    b = create_building(building, map)
+                    obj_layer = map.returnMap().get_layer_by_name("ObjectsTop")
+                    obj_layer.append(b)
 
-    initial_citizens = []
-    for i in range (1,11):
-        c = Citizen()
-        initial_citizens.append(c)
+        # handle citizens restore
+        for loaded_citizen in loaded_citizens:
+            # citizen
+            c = Citizen()
+            # handle home zone
+            if loaded_citizen[1] != -1:
+                home_zone = map.get_zone_by_id(loaded_citizen[1])
+                if home_zone:
+                    home_zone.properties['Citizens'].append(c)
+                    c.home = home_zone
+            # handle work zone
+            if loaded_citizen[2] != -1:
+                work_zone = map.get_zone_by_id(loaded_citizen[2])
+                if work_zone:
+                    work_zone.properties['Citizens'].append(c)
+                    c.work = work_zone
+            c.satisfaction = loaded_citizen[3]
+    else:
+        initial_citizens = []
+        for i in range (1,11):
+            c = Citizen()
+            initial_citizens.append(c)
+        randomize_initial_forests()
     game_loop = True
 
+    
+    clicked_cords = None
+    clicked_zone = None
+    upgrade = None
+    reclassify = None
+    
     while game_loop:
         cursorImgRect.center = pygame.mouse.get_pos()
         map.display()
@@ -241,54 +386,53 @@ def run(running, loaded_game):
 
         # Citizen adding Logic
         if (len(initial_citizens) != 0): # Initial edge case
-            RZones = map.get_residential_zones()
-            if(len(RZones) > 0):
-                RZone = random.choice(RZones)
+            if len (map.get_residential_zones()) != 0:
+                first_R_Zone = map.get_residential_zones()[0]
                 for c in initial_citizens:
-                    c.assign_to_residential_zone(RZone,map)
+                    assign_to_residential_zone(c,first_R_Zone,map)
+                    handle_citizen_addition_satisfaction(c,map)
                     initial_citizens.remove(c)
 
-        if(timer.get_current_time().month != month):
-            RZones = map.get_residential_zones()
-            if len(RZones) > 0:
-                s = Citizen.get_current_satisfaction()
-                curr_per = s*100/Citizen.get_max_possible_satisfaction()
-                # Amount of citizens possible to be added depends on current overall satisfaction
-                if (curr_per >= 25):
-                    n = int(curr_per / 100 * 10)
-                    for _ in range (n):
-                        RZone = random.choice(RZones)
-                        if RZone.properties['Capacity'] != len(RZone.properties['Citizens']):
-                            c = Citizen()
-                            c.assign_to_residential_zone(RZone,map)
-                else:
-                    # Random amount of sad citizens leave
-                    lst = Citizen.get_sad_citizens(20)
-                    if len(lst) > 0:
-                        to_remove = random.randint(0, len(lst) - 1)
-                        for i in range(to_remove):
-                            lst[i].delete_citizen()
+        if(timer.get_current_time().month != month):   
+            add_citizens_to_game(map)
+            for zone in map.get_residential_zones():
+                assign_zone_citizens_to_work(zone, map)
             month = timer.get_current_time().month
-
-
-
-        # Zones and (Buildings,Roads) Expense Logic
+        
+        
+        # Zones and (Buildings,Roads,Forest) Expense Logic 
         if(timer.get_current_time().day != day):
             for obj in map.get_all_objects():
-                # Handle Buildings,Roads
+                did_a_quarter_pass = has_quarter_passed_from_creation(obj,timer)
+                did_a_year_pass = has_year_passed_from_creation(obj,timer)
+                
+                # Handle ServiceBuildings,Roads Expense
                 if obj.type == "Road" or obj.type == "PoliceDepartment" or obj.type == "Stadium":
-                    if(has_year_passed_from_creation(obj,timer)):
-                        player.money -= obj.properties['MaintenanceFee'] 
+                    if(did_a_year_pass):
+                        player.money -= obj.properties['MaintenanceFee']
+                        
+                # Handle Forest Expense and Grow
+                elif obj.type == "Forest":
+                    if(did_a_year_pass):
+                        if obj.properties['Mature']:
+                            player.money -= obj.properties['MaintenanceFee']
+                        else:
+                            obj.properties['Year'] += 1
+                            obj.properties['Satisfaction'] += 0.03
+                            handle_tree_growth(obj)
+                            if obj.properties['Year'] == 10:
+                                obj.properties['Mature'] = True
+                # Handle Zones Expense
                 else:
                     # Deduct MaintenanceFees for any Zone from Player
-                    if(has_quarter_passed_from_creation(obj,timer)):
+                    if(did_a_quarter_pass):
                         player.money -= obj.properties['MaintenanceFee']
                     # IncreaseRevenue of each WorkZone per day
                     total_citizens = len(obj.properties['Citizens'])
                     if(obj.type != "ResidentialZone" and total_citizens != 0):
                         obj.properties['Revenue'] += (MONEY_PER_DAY * total_citizens)
                     # Get revenue (TAX) from WorkZone to Player
-                    elif(obj.type != "ResidentialZone" and has_year_passed_from_creation(obj,timer)):
+                    elif(obj.type != "ResidentialZone" and did_a_year_pass):
                         revenue = obj.properties['Revenue'] * TAX_VARIABLE
                         player.money += revenue
                         obj.properties['Revenue'] = 0
@@ -296,8 +440,27 @@ def run(running, loaded_game):
             
             
         for event in pygame.event.get(): # mouse button click, keyboard, or the x button.
+            
+            mouse_pos = pygame.mouse.get_pos()
+            
             if pygame.mouse.get_pressed()[2]:
                 normal_cursor = True
+                clicked_zone = upgrade = reclassify = None
+                clicked_cords = mouse_pos
+                
+            if pygame.mouse.get_pressed()[0]:
+                if reclassify:
+                    if reclassify.collidepoint(mouse_pos):
+                        map.reclassify_zone(clicked_zone)
+                        player.money += (float(clicked_zone.properties["Price"])*0.5)
+                        clicked_cords = clicked_zone = upgrade = reclassify = None
+                if upgrade:
+                    if upgrade.collidepoint(mouse_pos):
+                        upgrade_zone(clicked_zone,map)
+                        player.money -= ((float(clicked_zone.properties["Price"])*0.5) * (clicked_zone.properties["Level"]+0.25))
+                clicked_cords = clicked_zone = upgrade = reclassify = None
+
+            
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -305,7 +468,6 @@ def run(running, loaded_game):
                 game_loop = False
                 show_menu(SCREEN, running, game_loop)
             elif event.type == pygame.MOUSEBUTTONUP:    # Cursor handling
-                mouse_pos = pygame.mouse.get_pos()
                 selected_icon = builder_panel.get_selected_icon_index(mouse_pos) 
                 if (not normal_cursor):
                     x,y = map.getClickedTile(mouse_pos)
@@ -317,14 +479,16 @@ def run(running, loaded_game):
                         obj = ""
                         if class_obj is not None:
                             if class_tobuild == "Road":
-                                obj = class_obj(x,y,timer.get_current_date_str(),map)    # Change
+                                obj = class_obj(x,y,timer.get_current_date_str(),map)
                             else:
-                                obj = class_obj(x - 1,y - 1,timer.get_current_date_str(),map)    # Change
-                            map.addObject(obj.instance,player)
+                                obj = class_obj(x - 1,y - 1,timer.get_current_date_str(),map)
+                            instance = map.addObject(obj.instance,player)
+                            # Satisfaction handling for: Forest, Stadium, and PoliceDepartment
+                            if(is_satisfaction_zone(instance)):
+                                handle_satisfaction_zone_addition(instance)
                             class_tobuild = -1
                         else:
-                            map.remove_obj(x,y,"Road")
-                            #print(f"Can't build class: {class_tobuild} because it doesn't exist")
+                            map.remove_road(x,y,"Road", map)
                         normal_cursor = True
                 if selected_icon != None:
                     # Handle cursor at selection
@@ -335,11 +499,16 @@ def run(running, loaded_game):
                     normal_cursor = False
                     class_tobuild = icons[selected_icon][1]
             elif event.type == pygame.KEYDOWN:  # Scroll handling
+                clicked_cords = clicked_zone = upgrade = reclassify = None
                 map.handleScroll(event.key)
         
 
         if not normal_cursor:
+            clicked_cords = clicked_zone = upgrade = reclassify = None
             SCREEN.blit(cursorImg, cursorImgRect)
+        
+        clicked_cords,clicked_zone,upgrade,reclassify = handle_prompt(clicked_cords,clicked_zone,upgrade,reclassify)
+                
         # Limit the frame rate to 60 FPS
         timer.update_time(paused)
         timer.tick(60)
@@ -348,8 +517,7 @@ def run(running, loaded_game):
         SCREEN.fill((0, 0, 0))
         global list_of_tiled_objs
         list_of_tiled_objs = []
-        for obj in map.get_all_objects():
+        for obj in map.get_all_objects(): 
             x = obj
             my_dict = x.__dict__
             list_of_tiled_objs.append(my_dict)
-        # print(len(Citizen.get_all_citizens()))
