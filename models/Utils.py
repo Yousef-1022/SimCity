@@ -4,6 +4,7 @@ from pytmx import TiledObject
 from models.Timer import Timer
 from models.BuildingAdder import form_tiled_obj
 from models.Citizen import *
+from models.Disaster import Disaster
 import math
 
 def get_files_from_dir(dir_path) -> list:
@@ -42,19 +43,34 @@ def add_citizen(tiledObj: TiledObject, citizen):
     return False
 
 
-def remove_citizen_from_zone(tiledObj: TiledObject, citizen):
-    """Removes a citizen from the tiledObj"""
+def remove_citizen_from_zone(tiledObj: TiledObject, citizen:Citizen) -> bool:
+    """
+    Removes a citizen from the tiledObj
+    
+    Returns:
+    boolean value indicating the success of removing the given citizen
+    """
     try:
         tiledObj.properties['Citizens'].remove(citizen)
+        return True
     except Exception as e:
-        print(
-            f"Fatal failure removing citizen {citizen} from {tiledObj}. Error: {e}")
+        #print(f"Fatal failure removing citizen {citizen} with data {citizen.__dict__} from {tiledObj}. Error: {e}")
+        return False
 
 
 def has_year_passed_from_creation(obj: TiledObject, givenDate: Timer) -> bool:
     """Checks the creation date of the zone/Building and the givenDate whether a year has passed or not """
-    x = givenDate.subtract_with_time_str(obj.properties["CreationDate"])
-    return x != 0 and x % 365 == 0
+    if obj:
+        x = givenDate.subtract_with_time_str(obj.properties["CreationDate"])
+        return x != 0 and x % 365 == 0
+    return False
+
+def has_month_passed_from_creation(obj: TiledObject, givenDate: Timer) -> bool:
+    """Checks the creation date of the zone/Building and the givenDate whether a month has passed or not """
+    if obj:
+        x = givenDate.subtract_with_time_str(obj.properties["CreationDate"])
+        return x != 0 and x % 30 == 0
+    return False
 
 
 def has_quarter_passed_from_creation(obj: TiledObject, givenDate: Timer) -> bool:
@@ -112,8 +128,9 @@ def get_linked_ids_for_obj(obj: TiledObject) -> list:
     Objects = obj.parent.get_layer_by_name("ObjectsTop")
     res = []
     for o in Objects:
-        if o.properties['linked_id'] == obj.id:
-            res.append(o)
+        if o.type != 'Disaster':
+            if o.properties['linked_id'] == obj.id:
+                res.append(o)
     return res
 
 
@@ -409,7 +426,11 @@ def add_citizens_to_game(map):
     part2 = 0.0
     part3 = 0.0
     total_satisfaction = get_current_satisfaction()
-    average_satisfaction = total_satisfaction / get_total_citizens() 
+    total_citizens = get_total_citizens()
+    if total_citizens == 0:   
+        average_satisfaction = 0
+    else:
+        average_satisfaction = total_satisfaction / total_citizens
     zones_with_arrival_chances = [] 
     for zone in map.get_residential_zones():
         if len(zone.properties['Citizens']) < zone.properties['Capacity']:
@@ -643,7 +664,101 @@ def assign_to_work_zone(citizen,WorkZone,mapInstance) -> bool:
         simulate_building_addition(WorkZone,mapInstance)
         return True
     else:
-        print("Can't assign citizen cuz W_zone is full", WorkZone.properties['Capacity'])
+        #print("Can't assign citizen cuz W_zone is full", WorkZone.properties['Capacity'])
         return False
 
+def delete_citizen(c:Citizen) -> bool:
+    """
+    Deletes the citizen and all data associated with it
+    
+    Returns:
+    boolean value indicating that the citizen was deleted successfully.
+    """
+    c.home = None
+    c.work = None
+    try:
+        del Citizen.citizens[c.id]
+        return True
+    except Exception as e:
+        #print(f"Fatal failure deleting citizen {c} with data: {c.__dict__}. Error: {e}")
+        return False
+        
+def handle_disaster_logic(map,givenDate:Timer):
+    disasters = map.get_all_disasters()
+    for disaster in disasters:
+        if (has_month_passed_from_creation(disaster,givenDate)):
+            for obj in disaster.properties['linked_objs']:
+                lnked = [b for b in map.get_buildings() if b.type != 'Disaster' and b.properties['linked_id'] == obj.id]
+                
+                if (obj.type == 'ResidentialZone'):
+                    rmf = []
+                    for c in obj.properties['Citizens']:
+                        rmf.append(c.id)
+                        if (c.work):
+                            remove_citizen_from_zone(obj,c.work)
+                    for i in rmf:
+                        c = get_citizen_by_id(i)
+                        delete_citizen(c)
+                    obj.properties['Citizens'] = []
+                    for b in lnked:
+                        map.remove_disaster_or_building(b)
+                    map.reclassify_zone(obj)
+                    
+                elif (obj.type == 'IndustrialZone' or obj.type == 'ServiceZone'):
+                    for c in obj.properties['Citizens']:
+                        remove_citizen_from_zone(obj,c)
+                        c.work = None
+                    obj.properties['Citizens'] = []
+                    for b in lnked:
+                        map.remove_disaster_or_building(b)
+                    map.reclassify_zone(obj)
+                    
+                elif (obj.type == 'PoliceDepartment' or obj.type == 'Stadium' or obj.type == 'Forest'):
+                    map.reclassify_zone(obj)
+            map.remove_disaster_or_building(disaster)
 
+def handle_satisfaction_zone_removal(SZone:TiledObject,RZones):
+    """
+    After the player deletes a Stadium or PoliceDepartment , it checks nearby Citizens and decreases satisfaction
+    
+    (Reclassify Forest because of Disaster uses this function)
+    """
+    for RZone in RZones:
+        if (distance_between_two(RZone,SZone) <= SZone.properties['Radius']):
+            for c in RZone.properties['Citizens']:
+                tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
+                if tmp >= 0:
+                    c.satisfaction -= (SZone.properties['Satisfaction']*c.satisfaction)
+                    
+def handle_disaster_random_logic(mapInstance,givenDate,randomizer:bool):
+    """
+    Creates a random Disaster on the map on a yearly basis given that forests exist
+    
+    Args:
+    mapInstance: the Map itself
+    givenDate: the current time the disaster would be called
+    randomizer: boolean value given by has_random_years_passed_from_start used in forest yearly pass checking
+    """
+    if randomizer:
+        zones = [o for o in mapInstance.get_all_objects() if o.type != "Road"]
+        if (len(zones) != 0):
+            disasters = mapInstance.get_all_disasters()
+            to_destroy = random.choice(zones)
+            for d in disasters:
+                if to_destroy in d.properties['linked_objs']:
+                    return
+            disaster_make = Disaster(to_destroy.x//32,to_destroy.y//32,givenDate,mapInstance)
+            obj = disaster_make.instance
+            obj.properties['linked_objs'] = [to_destroy]
+            mapInstance.add_disaster_to_map(obj)
+                    
+def has_random_years_passed_from_start(gameStart, givenDate: Timer) -> bool:
+    """Checks the creation date of the zone/Building and the givenDate whether a year has passed or not """
+    years_passed = givenDate.subtract_with_time_str(gameStart) // 365
+    random_array = [random.randint(years_passed+1, years_passed+99) for _ in range(99)]
+    random_array.append(years_passed)
+    choice = random.choice(random_array)
+    if choice - years_passed == 0:
+        return True
+    else:
+        return False
