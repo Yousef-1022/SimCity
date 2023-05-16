@@ -559,6 +559,14 @@ def get_neighboring_objects(roads, map):
             neighboring_objects.append(object) 
     return neighboring_objects
 
+def get_all_neighboring_objects(roads, map):
+    neighboring_objects = []
+    for road in roads:
+        object = get_all_neighboring_object(road,map)
+        if object:
+            neighboring_objects.append(object) 
+    return neighboring_objects
+
 
 def  get_neighboring_object(road, map):
     x = int (road.x // 32) 
@@ -570,6 +578,17 @@ def  get_neighboring_object(road, map):
             for tup in c:
                 if int(tup[0]) == x and  int(tup[1]) == y:
                     return object
+    return None
+
+def  get_all_neighboring_object(road, map):
+    x = int (road.x // 32) 
+    y = int (road.y // 32) 
+    objects = map.get_all_objects()
+    for object in objects:
+        c =  get_outer_circumference(object)
+        for tup in c:
+            if int(tup[0]) == x and  int(tup[1]) == y:
+                return object
     return None
 
 def assign_zone_citizens_to_work(zone, map):

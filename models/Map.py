@@ -127,7 +127,6 @@ class Map:
             can_be_added = False
 
         if can_be_added:
-            # if obj.type == "Road":
             if (not init_tree):
                 player.money = player.money - int(obj.properties['Price'])
             objLayer.append(obj)
@@ -138,17 +137,24 @@ class Map:
         obj_layer = self.__map.get_layer_by_name("Objects")
         roads = self.get_all_roads()
         for obj in obj_layer:
-            if (obj.x // 32)== x and (obj.y // 32) == y and obj.type == obj_type:
-                # connected_roads = get_all_connected_roads(obj, roads) # SHOULD BE ADDED LATER
-                # if(len(get_neighboring_objects(connected_roads, map))) <= 1:
-                obj_layer.remove(obj)
-                self.__objcount-=1
+            if (obj.x // 32) == x and (obj.y // 32) == y and obj.type == obj_type:
+                connected_roads = get_all_connected_roads(obj, roads)
+                connected_objects_temp = list(set ([ob for ob in get_all_neighboring_objects(connected_roads, map)]))
+                connected_objects= [] 
+                for ob in connected_objects_temp:
+                    if ob.type == "ResidentialZone" or ob.type == "IndustrialZone" or "ServiceZone" == ob.type:
+                        connected_objects.append(ob)
+                R_zone = None 
+                for zone in connected_objects:
+                    if zone.type == "ResidentialZone":
+                        R_zone = zone 
+                if R_zone and len(connected_objects) <= 1 or not R_zone:
+                    obj_layer.remove(obj)
+                    self.__objcount-=1
                 break
-            # else:
-            #     print("Can't demolish a road because it connects objects!!")
 
     def get_all_roads(self):
-        objects =  self.__map.get_layer_by_name("Objects")     
+        objects =  self.get_all_objects()     
         return [obj for obj in objects if obj.type == "Road"]
     
     def getClickedTile(self,mousePos):
