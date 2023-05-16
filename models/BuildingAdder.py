@@ -25,8 +25,9 @@ def get_occupied_tiles(TiledObj:TiledObject) -> list:
     lst = []
     Objects = TiledObj.parent.get_layer_by_name("ObjectsTop")
     for o in Objects:
-        if o.properties['linked_id'] == TiledObj.id:
-            lst.append((o.x//32,o.y//32))
+        if o.type != 'Disaster':
+            if o.properties['linked_id'] == TiledObj.id:
+                lst.append((o.x//32,o.y//32))
     return lst
 
 def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
@@ -36,7 +37,7 @@ def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
     UseCase: Zones only
     
     Args:
-    tiledObj: TiledObject (the required zone)
+    tiledObj: TiledObject (the required zone) to have the new obj to be put on
     mapInstance: Map object (required)
     
     Returns:
@@ -45,14 +46,14 @@ def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
     the_name = ""
     xtile = TiledObj.x
     ytile = TiledObj.y
-    if (TiledObj.name == "RZone"):
+    if (TiledObj.name == "RZone" and TiledObj.properties["Level"] == 1):
         the_name = f'RZoneHouse{random.randint(1,4)}'
         occupied = get_occupied_tiles(TiledObj)
         possible = get_possible_coords(TiledObj)
         take = [xy for xy in possible if xy not in occupied]
         xy = random.choice(take)
-        xtile=xy[0]*32
-        ytile=xy[1]*32
+        xtile=xy[0]*TiledObj.parent.tilewidth
+        ytile=xy[1]*TiledObj.parent.tileheight
     else:
         the_name = f'{TiledObj.name}LVL{TiledObj.properties["Level"]}'
     placeholder = mapInstance.getStaticObjectByName(the_name)        

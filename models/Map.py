@@ -521,23 +521,46 @@ class Map:
         return button
 
 
-    def reclassify_zone(self,zone):
+    def reclassify_zone(self,obj):
         """
         Reclassifies the zone if it does not have any citizens
         
-        Can be used to delete a PoliceDepartment or Stadium
+        Can be used to delete a PoliceDepartment, Stadium, Forest, Road
+        
+        Args:
+        zone: TiledObj representing the object to reclassify
         """
         try:
-            if (zone.type == 'PoliceDepartment' or zone.type == 'Stadium'):
+            if (obj.type == 'PoliceDepartment' or obj.type == 'Stadium' or obj.type == 'Forest'):
                 obj_layer = self.__map.get_layer_by_name("Objects")
-                obj_layer.remove(zone)
-                self.__objcount-=1
-            elif (len(zone.properties['Citizens']) == 0):
+                if(obj in obj_layer):
+                    obj_layer.remove(obj)
+                    self.__objcount-=1
+                    handle_satisfaction_zone_removal(obj,self.get_residential_zones())
+            elif obj.type == 'Road':
                 obj_layer = self.__map.get_layer_by_name("Objects")
-                obj_layer.remove(zone)
-                self.__objcount-=1
+                if(obj in obj_layer):
+                    obj_layer.remove(obj)
+                    self.__objcount-=1
+            elif (len(obj.properties['Citizens']) == 0):
+                obj_layer = self.__map.get_layer_by_name("Objects")
+                if(obj in obj_layer):
+                    obj_layer.remove(obj)
+                    self.__objcount-=1
         except Exception as e:
-            print(f"Fatal error to reclassify {zone}. Error: {e}")
+            print(f"Fatal error to reclassify {obj}. Error: {e}")
+            
+    def remove_disaster_or_building(self,db):
+        """
+        Function used to delete the given disaster or building which is on the ObjectsTop layer
+        
+        Use case: destory disasters or buildings
+        
+        Args: 
+        building: TiledObject existing on the ObjectsTop layer
+        """
+        obj_layer = self.__map.get_layer_by_name("ObjectsTop")
+        obj_layer.remove(db)
     
     def get_service_zones(self):
         """
@@ -571,3 +594,19 @@ class Map:
         else:
             return [obj for obj in self.get_all_objects() \
                 if  obj.type == "Road"] 
+            
+    def add_disaster_to_map(self,disaster):
+        """
+        Adds the Disaster onto the ObjectsTop layer of the map
+        
+        Args:
+        disaster: TiledObj representing a Disaster
+        """
+        objLayer = self.__map.get_layer_by_name("ObjectsTop")
+        objLayer.append(disaster)
+        
+    def get_all_disasters(self) -> list:
+        """
+        Returns all active disasters currently happening
+        """
+        return [obj for obj in self.__map.get_layer_by_name("ObjectsTop") if obj.type == 'Disaster' and obj.properties['Placeholder'] == 'dynamic']

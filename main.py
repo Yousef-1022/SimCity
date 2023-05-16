@@ -11,6 +11,7 @@ from models.zones.ServiceZone import ServiceZone
 from models.PoliceDepartment import PoliceDepartment
 from models.Stadium import Stadium
 from models.Forest import Forest
+from models.Disaster import Disaster
 from models.Player import Player
 from models.Timer import Timer
 from models.Utils import *
@@ -38,19 +39,6 @@ map = Map(SCREEN, builder_panel.getWidth(), description_panel.getHeight())
 global class_tobuild
 game_loop = True
 
-
-def save_game(running, game_loop):
-    # save the status of the game
-    print("save")
-    pass
-
-def resume_game(running, game_loop):
-    print("save")
-    pass
-
-def main_menu(running, game_loop):
-    game_loop= False
-    return game_loop
 
 def show_menu(screen, running, game_loop):
     menu_height = 400
@@ -129,7 +117,7 @@ def save_game(running, game_loop):
             for building in obj['properties']['Buildings']:
                 building['parent'] = ""
 
-    print(list_of_tiled_objs)
+    #print(list_of_tiled_objs)
     # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
     with open('game_state.pickle', 'wb') as f:
         pickle.dump(citizens, f)
@@ -233,16 +221,6 @@ def handle_tree_growth(SZone:TiledObject):
                     if tmp <= 100:
                         c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
             
-def handle_satisfaction_zone_removal(SZone:TiledObject):
-    """
-    After the player deletes a Stadium or PoliceDepartment, it checks nearby Citizens and decreases satisfaction
-    """
-    for RZone in map.get_residential_zones():
-        if (distance_between_two(RZone,SZone) <= SZone.properties['Radius'] and SZone.type != "Forest"):
-            for c in RZone.properties['Citizens']:
-                tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
-                if tmp >= 0:
-                    c.satisfaction -= (SZone.properties['Satisfaction']*c.satisfaction)
 
 def handle_prompt(clckd_crds,clckd_zn,upgrd,rclssfy):
     """
@@ -306,6 +284,7 @@ def run(running, loaded_game):
     cursorImgRect = cursorImg.get_rect()
     day = timer.get_current_time().day
     month = timer.get_current_time().month
+    game_start_time = timer.get_current_date_str()
     TAX_VARIABLE = 0.05
     game_speed  = 1
     global game_loop
@@ -335,10 +314,9 @@ def run(running, loaded_game):
             else:
                 map.remove_obj(loaded_obj['x']//32,loaded_obj['y']//32,"Road")
             normal_cursor = True
-            print("NIGGER:",loaded_obj['properties'])
             if loaded_obj['type'][-4:] == 'Zone':
                 for building in loaded_obj['properties']['Buildings']:
-                    print(loaded_obj['name'],"THE NAME <-- GOES TO BUILDING",loaded_obj['properties']['Buildings'])
+                    #print(loaded_obj['name'],"THE NAME <-- GOES TO BUILDING",loaded_obj['properties']['Buildings'])
                     b = create_building(building, map)
                     obj_layer = map.returnMap().get_layer_by_name("ObjectsTop")
                     obj_layer.append(b)
@@ -373,14 +351,17 @@ def run(running, loaded_game):
     clicked_zone = None
     upgrade = None
     reclassify = None
-    
+    held_price = 0
+    class_tobuild = "Nothing"
+    randomizer_for_disaster = False    
     while game_loop:
+        
         cursorImgRect.center = pygame.mouse.get_pos()
         map.display()
 
-        description_panel.display(SCREEN,24,(10,10),(128,128,128),f"Funds: {player.money}$ , more industrial zones needed",(255,255,255))
+        description_panel.display(SCREEN,24,(10,10),(128,128,128),f"Funds: ${player.money} , Citizens: {get_total_citizens()}",(255,255,255))
         description_panel.displayTime(SCREEN,f"Time: {timer.get_current_date_str()}",(500,10))
-        price_panel.display(SCREEN,24,(96, SCREEN.get_height() - 20),(128,128,128),"$100 Road",(255,255,255))
+        price_panel.display(SCREEN,24,(96, SCREEN.get_height() - 20),(128,128,128),f'${(held_price)} for {class_tobuild}',(255,255,255))
         builder_panel.display(SCREEN,0,(0,0),(90,90,90),"",(0,0,0))
         builder_panel.display_assets(SCREEN,icons)
 
@@ -414,6 +395,7 @@ def run(running, loaded_game):
                 # Handle Forest Expense and Grow
                 elif obj.type == "Forest":
                     if(did_a_year_pass):
+                        randomizer_for_disaster = has_random_years_passed_from_start(game_start_time,timer)
                         if obj.properties['Mature']:
                             player.money -= obj.properties['MaintenanceFee']
                         else:
@@ -447,6 +429,8 @@ def run(running, loaded_game):
                 normal_cursor = True
                 clicked_zone = upgrade = reclassify = None
                 clicked_cords = mouse_pos
+                class_tobuild = "Nothing"
+                held_price = 0
                 
             if pygame.mouse.get_pressed()[0]:
                 if reclassify:
@@ -478,15 +462,31 @@ def run(running, loaded_game):
                         class_obj = globals().get(class_tobuild)
                         obj = ""
                         if class_obj is not None:
+                            disaster_make = None
                             if class_tobuild == "Road":
                                 obj = class_obj(x,y,timer.get_current_date_str(),map)
+                            elif class_tobuild == "Disaster":
+                                disaster_make = Disaster(x-1,y-1,timer.get_current_date_str(),map)
+                                obj = disaster_make.instance
+                                zones = map.get_all_objects()
+                                to_destory = []
+                                for p in get_area(obj):
+                                    tmp = tile_in_which_zone(p,zones)
+                                    if(tmp):
+                                        if (tmp not in to_destory):
+                                            to_destory.append(tmp)
+                                obj.properties['linked_objs'] = to_destory
+                                map.add_disaster_to_map(obj)
                             else:
                                 obj = class_obj(x - 1,y - 1,timer.get_current_date_str(),map)
-                            instance = map.addObject(obj.instance,player)
-                            # Satisfaction handling for: Forest, Stadium, and PoliceDepartment
-                            if(is_satisfaction_zone(instance)):
-                                handle_satisfaction_zone_addition(instance)
-                            class_tobuild = -1
+
+                            if (not disaster_make):
+                                instance = map.addObject(obj.instance,player)
+                                # Satisfaction handling for: Forest, Stadium, and PoliceDepartment
+                                if(is_satisfaction_zone(instance)):
+                                    handle_satisfaction_zone_addition(instance)
+                            class_tobuild = "Nothing"
+                            held_price = 0
                         else:
                             map.remove_road(x,y,"Road", map)
                         normal_cursor = True
@@ -498,6 +498,11 @@ def run(running, loaded_game):
                     cursorImgRect.center = pygame.mouse.get_pos()
                     normal_cursor = False
                     class_tobuild = icons[selected_icon][1]
+                    the_class = globals().get(class_tobuild)
+                    if (the_class):
+                        held_price = the_class.price
+                    else:
+                        held_price = 0 
             elif event.type == pygame.KEYDOWN:  # Scroll handling
                 clicked_cords = clicked_zone = upgrade = reclassify = None
                 map.handleScroll(event.key)
@@ -508,6 +513,9 @@ def run(running, loaded_game):
             SCREEN.blit(cursorImg, cursorImgRect)
         
         clicked_cords,clicked_zone,upgrade,reclassify = handle_prompt(clicked_cords,clicked_zone,upgrade,reclassify)
+        handle_disaster_logic(map,timer)
+        handle_disaster_random_logic(map,timer.get_current_date_str(),randomizer_for_disaster)
+
                 
         # Limit the frame rate to 60 FPS
         timer.update_time(paused)
