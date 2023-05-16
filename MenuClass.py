@@ -1,5 +1,6 @@
 import pygame
 import main
+import pickle
 
 class MenuClass:
     def __init__(self):
@@ -63,6 +64,7 @@ class MenuClass:
         self.start_game = False
         self.current_option = 0
         self.show_instructions = False
+        self.loaded_game = False
 
     def draw_instructions(self):
         # Draw a semi-transparent black rectangle to create a background
@@ -102,7 +104,9 @@ class MenuClass:
                                     self.current_option = 0
                                 elif self.current_option == 2:
                                     print("Load Game selected")
-                                    #TODO LOAD THE ALREAY SAVED GAME
+                                    self.loaded_game = True
+                                    self.start_menu = False
+                                    self.start_game = True
                                 elif self.current_option == 3:
                                     self.running = False
                             else:
@@ -210,5 +214,7 @@ class MenuClass:
                 pygame.display.update()
 
             if self.start_game:
-                main.run()
+                self.start_menu = True
+                self.start_game = False
+                main.run(self.running, self.loaded_game)
 

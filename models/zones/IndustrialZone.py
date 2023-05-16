@@ -17,4 +17,3 @@ class IndustrialZone(Zone):
     def remove_citizen(self,c):
         """Removes a citizen from the list"""
         remove_citizen_from_zone(c)
-    

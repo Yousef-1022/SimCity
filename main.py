@@ -1,5 +1,7 @@
 import pygame , sys
+import pickle
 from models.Map import Map
+from models.BuildingAdder import *
 from models.Panels.BuilderPanel import BuilderPanel
 from models.Panels.DescriptionPanel import DescriptionPanel
 from models.Panels.PricePanel import PricePanel
@@ -33,7 +35,57 @@ price_panel = PricePanel(96, SCREEN.get_height() - 32, SCREEN.get_width() - 96, 
 icons_dir = "./Map/Assets/Builder_assets/"
 icons = [get_icon_and_type(f,icons_dir) for f in get_files_from_dir(icons_dir)]
 map = Map(SCREEN, builder_panel.getWidth(), description_panel.getHeight())
-class_tobuild = ""
+global class_tobuild
+game_loop = True
+
+
+def save_game(running, game_loop):
+    # save the status of the game
+    print("save")
+    pass
+
+def resume_game(running, game_loop):
+    print("save")
+    pass
+
+def main_menu(running, game_loop):
+    game_loop= False
+    return game_loop
+
+def show_menu(screen, running, game_loop):
+    menu_height = 400
+    menu_width = 400
+    screen_width = 1024
+    screen_height = 768
+    menu_x = (screen_width - menu_width) // 2
+    menu_y = (screen_height - menu_height) // 2
+
+    menu_surface = pygame.Surface((menu_width, menu_height))
+    menu_surface.fill((200, 200, 200))
+    # Create the menu options
+    menu_options = [
+        ("Resume Game", resume_game),
+        ("Save Game", save_game),
+        ("Main menu", main_menu)
+    ]
+
+    # Add the menu options to the menu surface
+    font = pygame.font.SysFont("Calibri", 48, bold=True)
+    selected_option = 0
+    menu_loop = True
+    while menu_loop:
+        for i, (text, action) in enumerate(menu_options):
+            text_surface = font.render(text, True, (0, 0, 0))
+            text_rect = text_surface.get_rect(center=(menu_width / 2, 75 + i * 75))
+            if i == selected_option:
+                pygame.draw.rect(menu_surface, (220, 220, 220), text_rect, 2)
+            else:
+                pygame.draw.rect(menu_surface, (180, 180, 180), text_rect, 2)
+            menu_surface.blit(text_surface, text_rect)
+
+        # Show the menu surface on the main surface
+        screen.blit(menu_surface, (menu_x, menu_y))
+        pygame.display.update()
 
 # Game simulation variables
 player = Player("HUMAN", 100000)
@@ -43,6 +95,109 @@ paused  = False
 
 # Initialize grid system.
 Grid = GridSystem(map)
+
+def resume_game(running, game_loop):
+    print("========================== resume ==================================")
+    game_loop = True
+    run(running, False)
+
+def save_game(running, game_loop):
+    print("========================== save ==================================")
+    citizens = []
+    citizens_objs = Citizen.get_all_citizens()
+    for citizen_id, citizen in citizens_objs.items():
+        citizen_list = []
+        citizen_list.append(citizen_id)
+        if citizen.home:
+            citizen_list.append(citizen.home.id)
+        else:
+            citizen_list.append(-1)
+        if citizen.work:
+            citizen_list.append(citizen.work.id)
+        else:
+            citizen_list.append(-1)
+        citizen_list.append(citizen.satisfaction)
+        citizens.append(citizen_list)
+
+    parents = []
+    # update tiled_object list
+    for obj in list_of_tiled_objs:
+        obj['properties']['Citizens'] = []
+        parents.append(obj['parent'])
+        obj['parent'] = ""
+        if obj['type'][-4:] == 'Zone':
+            for building in obj['properties']['Buildings']:
+                building['parent'] = ""
+
+    print(list_of_tiled_objs)
+    # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
+    with open('game_state.pickle', 'wb') as f:
+        pickle.dump(citizens, f)
+        pickle.dump(list_of_tiled_objs, f)
+    for i in range(len(list_of_tiled_objs)):
+        list_of_tiled_objs[i]['parent'] = parents[i]
+        if list_of_tiled_objs[i]['type'][-4:] == 'Zone':
+            for building in list_of_tiled_objs[i]['properties']['Buildings']:
+                building['parent'] = map.returnMap()
+
+    game_loop = True
+    run(running, False)
+
+def main_menu(running, game_loop):
+    print("========================== Main menu ==================================")
+    game_loop= False
+    # return game_loop
+
+def show_menu(screen, running, game_loop):
+    menu_height = 400
+    menu_width = 400
+    screen_width = 1024
+    screen_height = 768
+    menu_x = (screen_width - menu_width) // 2
+    menu_y = (screen_height - menu_height) // 2
+
+    menu_surface = pygame.Surface((menu_width, menu_height))
+    menu_surface.fill((200, 200, 200))
+    # Create the menu options
+    menu_options = [
+        ("Resume Game", resume_game),
+        ("Save Game", save_game),
+        ("Main menu", main_menu)
+    ]
+
+    # Add the menu options to the menu surface
+    font = pygame.font.SysFont("Calibri", 48, bold=True)
+    selected_option = 0
+    menu_loop = True
+    while menu_loop:
+        for i, (text, action) in enumerate(menu_options):
+            text_surface = font.render(text, True, (0, 0, 0))
+            text_rect = text_surface.get_rect(center=(menu_width / 2, 75 + i * 75))
+            if i == selected_option:
+                pygame.draw.rect(menu_surface, (220, 220, 220), text_rect, 2)
+            else:
+                pygame.draw.rect(menu_surface, (180, 180, 180), text_rect, 2)
+            menu_surface.blit(text_surface, text_rect)
+
+        # Show the menu surface on the main surface
+        screen.blit(menu_surface, (menu_x, menu_y))
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return
+                elif event.key == pygame.K_UP:
+                    selected_option = max(0, selected_option - 1)
+                elif event.key == pygame.K_DOWN:
+                    selected_option = min(len(menu_options) - 1, selected_option + 1)
+                elif event.key == pygame.K_RETURN:
+                    action = menu_options[selected_option][1]
+                    game_loop = action(running, game_loop)
+                    menu_loop = False
 
 def handle_satisfaction_zone_addition(SZone:TiledObject):
     """
@@ -145,25 +300,81 @@ def randomize_initial_forests():
         frst = Forest(p[0],p[1],timer.get_current_date_str(),map)
         map.addObject(frst.instance,player,True)  
     
-def run():
+def run(running, loaded_game):
     normal_cursor = True
     cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer",icons))
     cursorImgRect = cursorImg.get_rect()
     day = timer.get_current_time().day
     month = timer.get_current_time().month
+    TAX_VARIABLE = 0.05
+    game_speed  = 1
+    global game_loop
+    class_tobuild = ""
+    # handle saved tiled objects
     initial_citizens = []
-    for i in range (1,11):
-        c = Citizen()
-        initial_citizens.append(c)
-    randomize_initial_forests()
+    if loaded_game:
+        with open('game_state.pickle', 'rb') as f:
+            loaded_citizens = pickle.load(f)
+            loaded_objs = pickle.load(f)
+        #print(loaded_citizens)
+        # Handle object creation
+        for loaded_obj in loaded_objs:
+            class_tobuild = loaded_obj['type']
+            class_obj = globals().get(class_tobuild)
+            obj = ""
+            if class_obj is not None:
+                obj = class_obj(loaded_obj['x']//32,loaded_obj['y']//32 ,timer.get_current_date_str(),map)    # Change
+                if (loaded_obj['type'][-4:] == 'Zone'):
+                    obj.instance.properties['Level'] = loaded_obj['properties']['Level']
+                    obj.instance.properties['Capacity'] = loaded_obj['properties']['Capacity']
+                    obj.instance.properties['MaintenanceFee'] = loaded_obj['properties']['MaintenanceFee']
+                    obj.instance.properties['CreationDate'] = loaded_obj['properties']['CreationDate']
+                    obj.instance.properties['Revenue'] = loaded_obj['properties']['Revenue']
+                map.addObject(obj.instance,player)
+                class_tobuild = -1
+            else:
+                map.remove_obj(loaded_obj['x']//32,loaded_obj['y']//32,"Road")
+            normal_cursor = True
+            print("NIGGER:",loaded_obj['properties'])
+            if loaded_obj['type'][-4:] == 'Zone':
+                for building in loaded_obj['properties']['Buildings']:
+                    print(loaded_obj['name'],"THE NAME <-- GOES TO BUILDING",loaded_obj['properties']['Buildings'])
+                    b = create_building(building, map)
+                    obj_layer = map.returnMap().get_layer_by_name("ObjectsTop")
+                    obj_layer.append(b)
+
+        # handle citizens restore
+        for loaded_citizen in loaded_citizens:
+            # citizen
+            c = Citizen()
+            # handle home zone
+            if loaded_citizen[1] != -1:
+                home_zone = map.get_zone_by_id(loaded_citizen[1])
+                if home_zone:
+                    home_zone.properties['Citizens'].append(c)
+                    c.home = home_zone
+            # handle work zone
+            if loaded_citizen[2] != -1:
+                work_zone = map.get_zone_by_id(loaded_citizen[2])
+                if work_zone:
+                    work_zone.properties['Citizens'].append(c)
+                    c.work = work_zone
+            c.satisfaction = loaded_citizen[3]
+    else:
+        initial_citizens = []
+        for i in range (1,11):
+            c = Citizen()
+            initial_citizens.append(c)
+        randomize_initial_forests()
+    game_loop = True
+
     
     clicked_cords = None
     clicked_zone = None
     upgrade = None
     reclassify = None
-
     
-    while True:
+    while game_loop:
         cursorImgRect.center = pygame.mouse.get_pos()
         map.display()
 
@@ -172,8 +383,7 @@ def run():
         price_panel.display(SCREEN,24,(96, SCREEN.get_height() - 20),(128,128,128),"$100 Road",(255,255,255))
         builder_panel.display(SCREEN,0,(0,0),(90,90,90),"",(0,0,0))
         builder_panel.display_assets(SCREEN,icons)
-        
-    
+
         # Citizen adding Logic
         if (len(initial_citizens) != 0): # Initial edge case
             if len (map.get_residential_zones()) != 0:
@@ -254,11 +464,14 @@ def run():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                game_loop = False
+                show_menu(SCREEN, running, game_loop)
             elif event.type == pygame.MOUSEBUTTONUP:    # Cursor handling
                 selected_icon = builder_panel.get_selected_icon_index(mouse_pos) 
                 if (not normal_cursor):
                     x,y = map.getClickedTile(mouse_pos)
-                    if  x == -1 or y == -1:
+                    if  x == -1 or y == -1: 
                         normal_cursor= True 
                     else:
                         # Handle object creation
@@ -269,7 +482,6 @@ def run():
                                 obj = class_obj(x,y,timer.get_current_date_str(),map)
                             else:
                                 obj = class_obj(x - 1,y - 1,timer.get_current_date_str(),map)
-
                             instance = map.addObject(obj.instance,player)
                             # Satisfaction handling for: Forest, Stadium, and PoliceDepartment
                             if(is_satisfaction_zone(instance)):
@@ -290,6 +502,7 @@ def run():
                 clicked_cords = clicked_zone = upgrade = reclassify = None
                 map.handleScroll(event.key)
         
+
         if not normal_cursor:
             clicked_cords = clicked_zone = upgrade = reclassify = None
             SCREEN.blit(cursorImg, cursorImgRect)
@@ -299,5 +512,12 @@ def run():
         # Limit the frame rate to 60 FPS
         timer.update_time(paused)
         timer.tick(60)
+
         pygame.display.update()
         SCREEN.fill((0, 0, 0))
+        global list_of_tiled_objs
+        list_of_tiled_objs = []
+        for obj in map.get_all_objects(): 
+            x = obj
+            my_dict = x.__dict__
+            list_of_tiled_objs.append(my_dict)

@@ -2,10 +2,6 @@ import xml.etree.ElementTree as ET
 from pytmx import TiledObject
 
 class Stadium:
-    """
-    Stadium has 6 tiles radius of satisfaction increase
-    It can  increase the satisfaction of Citizens in nearby RZones by 15%
-    """
 
     def __init__(self,x,y,creationTime,mapInstance):
         self.x = x 
@@ -26,9 +22,7 @@ class Stadium:
                     <property name="CreationDate" value="{self.creationTime}"/> \
                     <property name="Price" value="{self.price}"/> \
                     <property name="Revenue" type="int" value="0"/> \
-                    <property name="MaintenanceFee" type="int" value="{int(self.price/2)}"/> \
-                    <property name="Radius" type="int" value="6"/> \
-                    <property name="Satisfaction" type="float" value="0.20"/> \
+                    <property name="MaintenanceFee" type="int" value="0"/> \
                 </properties> \
             </object>')
         obj = TiledObject(mapInstance.returnMap(),xml)

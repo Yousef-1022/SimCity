@@ -353,6 +353,9 @@ class Map:
         """
         return [obj for obj in self.__map.get_layer_by_name("ObjectsTop") if obj.properties['Placeholder'] == 'dynamic']
 
+    # def set_all_objects(self, objs):
+
+
     def get_residential_zones(self):
         """
         Get the list of all the ResidentialZones

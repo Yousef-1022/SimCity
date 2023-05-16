@@ -36,7 +36,7 @@ def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
     UseCase: Zones only
     
     Args:
-    tiledObj: TiledObject (the required zone) to have the new obj to be put on
+    tiledObj: TiledObject (the required zone)
     mapInstance: Map object (required)
     
     Returns:
@@ -45,14 +45,14 @@ def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
     the_name = ""
     xtile = TiledObj.x
     ytile = TiledObj.y
-    if (TiledObj.name == "RZone" and TiledObj.properties["Level"] == 1):
+    if (TiledObj.name == "RZone"):
         the_name = f'RZoneHouse{random.randint(1,4)}'
         occupied = get_occupied_tiles(TiledObj)
         possible = get_possible_coords(TiledObj)
         take = [xy for xy in possible if xy not in occupied]
         xy = random.choice(take)
-        xtile=xy[0]*TiledObj.parent.tilewidth
-        ytile=xy[1]*TiledObj.parent.tileheight
+        xtile=xy[0]*32
+        ytile=xy[1]*32
     else:
         the_name = f'{TiledObj.name}LVL{TiledObj.properties["Level"]}'
     placeholder = mapInstance.getStaticObjectByName(the_name)        
@@ -60,36 +60,10 @@ def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
         <object id="{-1}" name="{placeholder.name}" type="{placeholder.type}" gid="{0}" x="{xtile}" y="{ytile}" width="{placeholder.width}" height="{placeholder.height}"> \
             <properties> \
                 <property name="linked_id" type="int" value="{TiledObj.id}"/> \
-                <property name="Placeholder" value="dynamic"/> \
-            </properties> \
-        </object>')
-    
-    obj = TiledObject(TiledObj.parent,xml)
-    obj.gid = placeholder.gid
-    return obj
-
-def create_building (dic,mapInstance) -> TiledObject:
-    """
-    Function to create a building which can appear on top of a Zone.
-    
-    Usecase: recreating the building after using Pickle
-    
-    Args:
-    mapInstance: the TiledMap
-    dic: dictionary containing the necessary data to recreate the object
-    
-    Returns:
-        TiledObject which must be put on the ObjectsTop layer
-    """
-         
-    xml = ET.fromstring(f' \
-        <object id="{dic["id"]}" name="{dic["name"]}" type="{dic["type"]}" gid="{0}" x="{dic["x"]//32}" y="{dic["y"]//32}" width="{dic["width"]}" height="{dic["height"]}"> \
-            <properties> \
-                <property name="linked_id" type="int" value="{dic["properties"]["linked_id"]}"/> \
-                <property name="Placeholder" value="{dic["properties"]["Placeholder"]}"/> \
+                <property name="Placeholder" value="static"/> \
             </properties> \
         </object>')
     
     obj = TiledObject(mapInstance.returnMap(),xml)
-    obj.gid = dic["gid"]
+    obj.gid = placeholder.gid
     return obj

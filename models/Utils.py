@@ -84,14 +84,18 @@ def simulate_building_addition(obj: TiledObject, map):
         if (length == 0):
             create = True
     elif (obj.name == 'RZone'):
-        ppl = len(obj.properties['Citizens'])
-        quarter = obj.properties['Capacity'] // 4
-        if ((ppl % quarter == 1) and length < 4):
-            create = True
+        if obj.properties['Level'] == 1:
+            ppl = len(obj.properties['Citizens'])
+            quarter = obj.properties['Capacity'] // 4
+            if ((ppl % quarter == 1) and length < 4):
+                create = True
+        else:
+            create = False
     if (create):
         building = form_tiled_obj(obj,map)
         objLayer = obj.parent.get_layer_by_name("ObjectsTop")
         objLayer.append(building)
+        obj.properties['Buildings'].append(building.__dict__)
 
 
 def get_linked_ids_for_obj(obj: TiledObject) -> list:
@@ -253,15 +257,28 @@ def upgrade_zone(zone:TiledObject,mapInstance):
     """
     Upgrades the clicked Zone (RZone/CZone/IZone)
     """
+    #def get_obj_by_id(id):
+    #    for obj in mapInstance.returnMap().get_layer_by_name("ObjectsTop"):
+    #        if obj.id == id:
+    #            return obj
+    #    return None
+
     zone.properties['Level'] += 1
     zone.properties['Capacity'] = math.ceil(zone.properties['Capacity'] * 1.5)
     zone.properties['MaintenanceFee'] *= 0.25
     lst = get_linked_ids_for_obj(zone)
+    #to_delete = [i.id for i in lst]
     obj_layer = mapInstance.returnMap().get_layer_by_name("ObjectsTop")
     for obj in lst:
         obj_layer.remove(obj)
+    #for i in to_delete:
+    #    o = get_obj_by_id(i)
+    #    if (o):
+    #        del(o)
+    zone.properties['Buildings'] = []
     building = form_tiled_obj(zone,mapInstance)
     obj_layer.append(building)
+    zone.properties['Buildings'].append(building.__dict__)
             
 
 def get_all_connected_roads(road, road_list):
@@ -270,7 +287,6 @@ def get_all_connected_roads(road, road_list):
     dfs(road, visited, road_list)
     # print(visited)
     return visited
-
 
 def dfs(current_road, visited, road_list):
     # Extract relevant attributes into a tuple
@@ -597,19 +613,6 @@ def get_max_possible_satisfaction() -> int:
 def get_total_citizens() -> int:
     """Returns the total number of citizens"""
     return len(Citizen.citizens)
-
-def get_sad_citizens(s_lvl:int) -> list['Citizen']:
-    """
-    Gets a list of citizens who have a satisfaction level
-    less or equal to the given lvl
-
-    Args:
-        s_lvl: The satisfaction level the citizens should be less or equal to
-        
-    Returns:
-        List of sad citizens  
-    """
-    return (c for c in Citizen.citizens.values() if c.satisfaction <= s_lvl)
 
 def assign_to_residential_zone(citizen, RZone,mapInstance) -> bool:
     """
