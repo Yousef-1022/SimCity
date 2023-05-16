@@ -26,7 +26,6 @@ class Zone:
                     <property name="CreationDate" value="{self.creationTime}"/> \
                     <property name="Price" value="{self.price}"/> \
                     <property name="Revenue" type="int" value="0"/> \
-                    <property name="connected_roads"  value=""/> \
                     <property name="MaintenanceFee" type="int" value="0"/> \
                 </properties> \
             </object>')

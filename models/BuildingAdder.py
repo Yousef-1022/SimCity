@@ -36,7 +36,7 @@ def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
     UseCase: Zones only
     
     Args:
-    tiledObj: TiledObject (the required zone) to have the new obj to be put on
+    tiledObj: TiledObject (the required zone)
     mapInstance: Map object (required)
     
     Returns:
@@ -45,14 +45,14 @@ def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
     the_name = ""
     xtile = TiledObj.x
     ytile = TiledObj.y
-    if (TiledObj.name == "RZone" and TiledObj.properties["Level"] == 1):
+    if (TiledObj.name == "RZone"):
         the_name = f'RZoneHouse{random.randint(1,4)}'
         occupied = get_occupied_tiles(TiledObj)
         possible = get_possible_coords(TiledObj)
         take = [xy for xy in possible if xy not in occupied]
         xy = random.choice(take)
-        xtile=xy[0]*TiledObj.parent.tilewidth
-        ytile=xy[1]*TiledObj.parent.tileheight
+        xtile=xy[0]*32
+        ytile=xy[1]*32
     else:
         the_name = f'{TiledObj.name}LVL{TiledObj.properties["Level"]}'
     placeholder = mapInstance.getStaticObjectByName(the_name)        

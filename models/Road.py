@@ -23,7 +23,7 @@ class Road:
                     <property name="Placeholder" value="dynamic"/> \
                     <property name="CreationDate" value="{self.creation_time}"/> \
                     <property name="Price" value="{self.price}"/> \
-                    <property name="MaintenanceFee" type="int" value="{int(self.price/4)}"/> \
+                    <property name="MaintenanceFee" type="int" value="{self.price}"/> \
                     <property name="Citizens" value=""/>  \
                 </properties> \
             </object>')
