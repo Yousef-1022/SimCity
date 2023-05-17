@@ -119,7 +119,6 @@ def save_game(running, game_loop):
             for building in obj['properties']['Buildings']:
                 building['parent'] = ""
 
-    #print(list_of_tiled_objs)
     # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
     with open('game_state.pickle', 'wb') as f:
         pickle.dump(citizens, f)
@@ -362,10 +361,10 @@ def run(running, loaded_game, flag):
         cursorImgRect.center = pygame.mouse.get_pos()
         map.display()
 
-        description_panel.display(SCREEN,24,(10,10),(128,128,128),f"Funds: ${player.money} , Citizens: {get_total_citizens()}",(255,255,255))
-        description_panel.displayTime(SCREEN,f"Time: {timer.get_current_date_str()}",(500,10))
+        description_panel.display(SCREEN,24,(10,10),(128,128,128),f"Funds: ${player.money} , Citizens: {get_total_citizens()}",(0,0,0))
+        description_panel.displayTime(SCREEN,f"Time: {timer.get_current_date_str()}",(400,10))
         description_panel.display_game_speed(SCREEN, timer, game_speed_multiplier)
-        price_panel.display(SCREEN,24,(96, SCREEN.get_height() - 20),(128,128,128),f'${(held_price)} for {class_tobuild}',(255,255,255))
+        price_panel.display(SCREEN,24,(102, SCREEN.get_height() - 20),(128,128,128),f'${(held_price)} for {class_tobuild}',(0,0,0))
         builder_panel.display(SCREEN,0,(0,0),(90,90,90),"",(0,0,0))
         builder_panel.display_assets(SCREEN,icons)
 
