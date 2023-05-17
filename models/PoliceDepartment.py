@@ -17,7 +17,7 @@ class PoliceDepartment:
         placeholder = mapInstance.getStaticObjectByType(objType)
         width = mapInstance.getTileWidth()
         height = mapInstance.getTileHeight()
-        id = mapInstance.getNextObjId()+mapInstance.getObjCount()
+        id = mapInstance.getNextObjId()
         xml = ET.fromstring(f' \
             <object id="{id}" name="{placeholder.name}" type="{placeholder.type}" gid="{0}" x="{self.x*width}" y="{self.y*height}" width="{placeholder.width}" height="{placeholder.height}"> \
                 <properties> \

@@ -123,12 +123,17 @@ def save_game(running, game_loop):
     my_timer.append(saved_game_speed)
     my_timer.append(saved_speed_multiplier)
     my_timer.append(saved_current_time_str)
+    obj_count = map.getObjCount()
+    next_obj_count = map.getNextObjId() 
+
     # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
     with open('game_state.pickle', 'wb') as f:
         pickle.dump(citizens, f)
         pickle.dump(list_of_tiled_objs, f)
         pickle.dump(my_timer, f)
-    print(my_timer)
+        pickle.dump(obj_count, f)
+        pickle.dump(next_obj_count, f)
+
     for i in range(len(list_of_tiled_objs)):
         list_of_tiled_objs[i]['parent'] = parents[i]
         if list_of_tiled_objs[i]['type'][-4:] == 'Zone':
@@ -241,14 +246,23 @@ def handle_prompt(clckd_crds,clckd_zn,upgrd,rclssfy):
                 rclssfy = map.draw_prompt_to_delete(clckd_crds,clckd_zn)
             else:
                 # Handle already clicked Zone (RZone,CZone,IZone)
-                if(clckd_zn.properties['Level'] <= 3):
+                upgrd = rclssfy = None
+                if(clckd_zn.properties['Level'] <= 3 and clckd_zn.type[-4:] == 'Zone'):
                     btn = map.draw_prompt(clckd_crds,clckd_zn)
-                    if (len(clckd_zn.properties['Citizens']) == 0):
+                    amount_citizens = len(clckd_zn.properties['Citizens'])
+                    amount_buildings = len(clckd_zn.properties['Buildings'])
+                    if (amount_citizens == 0 and amount_buildings == 0):
                         upgrd = None
                         rclssfy = btn
+                    elif (amount_citizens >= 1):
+                        if(clckd_zn.type == 'ResidentialZone' and (amount_buildings <= 4 and amount_buildings > 0)):
+                            upgrd = btn
+                            rclssfy = None
+                        elif (clckd_zn.type == 'IndustrialZone' or  clckd_zn.type == 'ServiceZone'):
+                            upgrd = btn
+                            rclssfy = None
                     else:
-                        upgrd = btn
-                        rclssfy = None
+                        upgrd = rclssfy = None
                 else:
                     upgrd = rclssfy = None
         else:
@@ -262,14 +276,23 @@ def handle_prompt(clckd_crds,clckd_zn,upgrd,rclssfy):
                     rclssfy = map.draw_prompt_to_delete(clckd_crds,clckd_zn)
                 else:
                     # Handle already clicked Zone (RZone,CZone,IZone)
-                    if(clckd_zn.properties['Level'] <= 3):
+                    upgrd = rclssfy = None
+                    if(clckd_zn.properties['Level'] <= 3 and clckd_zn.type[-4:]):
                         btn = map.draw_prompt(clckd_crds,clckd_zn)
-                        if (len(clckd_zn.properties['Citizens']) == 0):
+                        amount_citizens = len(clckd_zn.properties['Citizens'])
+                        amount_buildings = len(clckd_zn.properties['Buildings'])
+                        if (amount_citizens == 0 and amount_buildings == 0):
                             upgrd = None
                             rclssfy = btn
+                        elif (amount_citizens >= 1):
+                            if(clckd_zn.type == 'ResidentialZone' and (amount_buildings <= 4 and amount_buildings > 0)):
+                                upgrd = btn
+                                rclssfy = None
+                            elif (clckd_zn.type == 'IndustrialZone' or  clckd_zn.type == 'ServiceZone'):
+                                upgrd = btn
+                                rclssfy = None
                         else:
-                            upgrd = btn
-                            rclssfy = None
+                            upgrd = rclssfy = None
                     else:
                         upgrd = rclssfy = None
     return clckd_crds, clckd_zn, upgrd, rclssfy
@@ -290,7 +313,7 @@ def run(running, loaded_game, flag):
     cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer",icons))
     cursorImgRect = cursorImg.get_rect()
     TAX_VARIABLE = 0.05
-    # game_speed  = 1
+    game_speed  = 1
     global game_loop
     class_tobuild = ""
     # handle saved tiled objects
@@ -300,7 +323,11 @@ def run(running, loaded_game, flag):
             loaded_citizens = pickle.load(f)
             loaded_objs = pickle.load(f)
             loaded_timer = pickle.load(f)
-        #print(loaded_citizens)
+            loaded_objCount = pickle.load(f)
+            loaded_nextObjCount = pickle.load(f)
+            map.set_next_obj_id(loaded_nextObjCount)
+            map.set_obj_count(loaded_objCount)
+        
         # Handle object creation
         for loaded_obj in loaded_objs:
             class_tobuild = loaded_obj['type']
@@ -314,17 +341,18 @@ def run(running, loaded_game, flag):
                     obj.instance.properties['MaintenanceFee'] = loaded_obj['properties']['MaintenanceFee']
                     obj.instance.properties['CreationDate'] = loaded_obj['properties']['CreationDate']
                     obj.instance.properties['Revenue'] = loaded_obj['properties']['Revenue']
-                map.addObject(obj.instance,player)
+                obj.instance.id = loaded_obj['id']
+                map.addObject(obj.instance,player,False,True)
                 class_tobuild = -1
             else:
                 map.remove_obj(loaded_obj['x']//32,loaded_obj['y']//32,"Road")
             normal_cursor = True
             if loaded_obj['type'][-4:] == 'Zone':
                 for building in loaded_obj['properties']['Buildings']:
-                    #print(loaded_obj['name'],"THE NAME <-- GOES TO BUILDING",loaded_obj['properties']['Buildings'])
                     b = create_building(building, map)
                     obj_layer = map.returnMap().get_layer_by_name("ObjectsTop")
                     obj_layer.append(b)
+                    obj.instance.properties['Buildings'].append(b.__dict__) 
 
         # handle citizens restore
         for loaded_citizen in loaded_citizens:

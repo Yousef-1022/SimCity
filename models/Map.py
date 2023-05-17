@@ -104,14 +104,15 @@ class Map:
         else:
             pass
         
-    def addObject(self, obj, player,init_tree=False):
+    def addObject(self, obj, player,init_tree=False,loaded_game=False):
         """
         Adds an instantiated class into the list of objects located on the Objects layer.
 
         Args:
             obj: The object to be added.
             player: The player object is needed to add money.
-            init_tree: Optional boolean value to indicate the creation of initial trees
+            init_tree: Optional boolean to indicate the creation of initial trees. Default: False
+            loaded_game: Optional boolean to indicate that the game is loaded, the objCount and nextObj won't change. Default: False
         """
         can_be_added = True
         objLayer = self.__map.get_layer_by_name("Objects")
@@ -130,7 +131,9 @@ class Map:
             if (not init_tree):
                 player.money = player.money - int(obj.properties['Price'])
             objLayer.append(obj)
-            self.__objcount += 1
+            if(not loaded_game):
+                self.__objcount += 1
+                self.__map.nextobjectid += 1
         return obj
     
     def remove_road(self, x, y, obj_type, map):
@@ -222,12 +225,20 @@ class Map:
     
     def getNextObjId(self):
         """
-        Returns the next object ID.
+        Increases the Map.tmx internal object counter
+        
+        When the function is called, the counter is increased
 
         Returns:
             The next object ID.
         """
         return self.__map.nextobjectid
+    
+    def set_next_obj_id(self,id):
+        self.__map.nextobjectid = id
+        
+    def set_obj_count(self,cnt):
+        self.__objcount = cnt
     
     def getStaticObjectByType(self,type):
         """
@@ -440,15 +451,17 @@ class Map:
         text_padding = 10
 
         amount_citizens = len(zone.properties['Citizens'])
+        amount_buildings = len(zone.properties['Buildings'])
         can_classify = False
+        can_upgrade =  False
         
-        if amount_citizens == 0:
+        if amount_citizens == 0 and amount_buildings == 0:
             sat = 0.0
             can_classify = True
         else:
-            sat = sum(c.satisfaction for c in zone.properties['Citizens']) / amount_citizens
+            sat = (sum(c.satisfaction for c in zone.properties['Citizens']) / amount_citizens) if amount_citizens != 0 else 0.0
             sat = '{:.2f}'.format(round(sat, 2))
-            can_classify = False
+            can_upgrade = True
             
         lines = [
             f"Saturation: {amount_citizens}",
@@ -464,7 +477,7 @@ class Map:
 
         res = None
         
-        if zone.properties['Level'] < 3 and amount_citizens > 0:
+        if can_upgrade and zone.properties['Level'] < 3 and amount_citizens > 0:
             button_width, button_height = 150, 30
             button_x = prompt_x + (prompt_width - button_width) // 2
             button_y = prompt_y + prompt_height + text_padding - button_height*2
@@ -581,7 +594,7 @@ class Map:
             return [obj for obj in self.get_all_objects() \
                 if  obj.type == "ServiceZone"]
         
-    def get_insustrial_zones(self):
+    def get_industrial_zones(self):
         """
         # Get Industrial zones
         
