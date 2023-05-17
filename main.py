@@ -87,7 +87,7 @@ Grid = GridSystem(map)
 def resume_game(running, game_loop):
     print("========================== resume ==================================")
     game_loop = True
-    run(running, False)
+    run(running, False, False)
 
 def save_game(running, game_loop):
     print("========================== save ==================================")
@@ -129,7 +129,7 @@ def save_game(running, game_loop):
                 building['parent'] = map.returnMap()
 
     game_loop = True
-    run(running, False)
+    run(running, False, False)
 
 def main_menu(running, game_loop):
     print("========================== Main menu ==================================")
@@ -278,7 +278,7 @@ def randomize_initial_forests():
         frst = Forest(p[0],p[1],timer.get_current_date_str(),map)
         map.addObject(frst.instance,player,True)  
     
-def run(running, loaded_game):
+def run(running, loaded_game, flag):
     normal_cursor = True
     cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer",icons))
     cursorImgRect = cursorImg.get_rect()
@@ -338,7 +338,8 @@ def run(running, loaded_game):
                     work_zone.properties['Citizens'].append(c)
                     c.work = work_zone
             c.satisfaction = loaded_citizen[3]
-    else:
+    if not loaded_game and flag:
+        flag = False
         initial_citizens = []
         for i in range (1,11):
             c = Citizen()

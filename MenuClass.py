@@ -65,6 +65,7 @@ class MenuClass:
         self.current_option = 0
         self.show_instructions = False
         self.loaded_game = False
+        self.flag = True
 
     def draw_instructions(self):
         # Draw a semi-transparent black rectangle to create a background
@@ -216,5 +217,5 @@ class MenuClass:
             if self.start_game:
                 self.start_menu = True
                 self.start_game = False
-                main.run(self.running, self.loaded_game)
+                main.run(self.running, self.loaded_game, self.flag)
 
