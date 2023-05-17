@@ -22,13 +22,8 @@ class Timer:
             game_speed_multiplier (int): The multiplier to apply to the time factor to make the game time pass faster.
      """
         self.clock = pygame.time.Clock()
-        self.game_speed_multiplier = game_speed_multiplier
-        self.game_speed = game_speed
-        self.time_factor = (60 / self.game_speed) * self.game_speed_multiplier
+        self.time_factor = (60 / game_speed) * game_speed_multiplier
         self.current_time = datetime.datetime(2023, 5, 2, 12, 0, 0)
-
-    def get_time_factor(self):
-        return (60 / self.game_speed) * self.game_speed_multiplier
 
     def get_current_time(self) -> datetime.datetime:
         """Returns the current date and time as a datetime object."""
@@ -57,7 +52,7 @@ class Timer:
             None
         """
         if not paused:
-            self.current_time += datetime.timedelta(seconds=self.get_time_factor())
+            self.current_time += datetime.timedelta(seconds=self.time_factor)
         
     def subtract_with_time_str(self,date_str: str) -> int:
         """With a given formatted string 'YYYY-MM-DD', returns the difference in days between the current
@@ -67,3 +62,5 @@ class Timer:
         diff_in_days = delta.days
         return diff_in_days
     
+    # def is_different_day(self):
+    #     return 
