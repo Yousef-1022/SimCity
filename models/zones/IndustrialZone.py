@@ -3,9 +3,11 @@ from models.Utils import remove_citizen_from_zone
 
 class IndustrialZone(Zone):
     
+    price = 300
+    
     def __init__(self,x,y,creationTime,mapInstance):
         super().__init__(x,y,creationTime)
-        self.price = 300
+        self.price = IndustrialZone.price
         self.instance = (super().createZoneObj(mapInstance))
         self.instance.properties['MaintenanceFee'] = 500
         self.instance.properties['Capacity'] = 10

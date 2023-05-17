@@ -1,0 +1,16 @@
+stages:
+  - test
+
+test-job:
+  stage: test
+  before_script:
+    - apt-get update
+    - apt-get install python3-pip -y
+    - python3 -m pip install --upgrade pip
+    - python3 -m pip install -r requirements.txt
+  script:
+    - echo "running testcases..."
+    - python3 -m pytest tests/test_game.py
+  only:
+    - master
+    - develop

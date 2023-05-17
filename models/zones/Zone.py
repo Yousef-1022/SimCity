@@ -8,20 +8,20 @@ class Zone:
         self.creationTime = creationTime
         self.price = 0
         
-        
     def createZoneObj(self,mapInstance) -> TiledObject:
         """Creates a zone object, requires the map to be passed"""
         zoneType = type(self).__name__
         placeholder = mapInstance.getStaticObjectByType(zoneType)
         width = mapInstance.getTileWidth()
         height = mapInstance.getTileHeight()
-        id = mapInstance.getNextObjId()+mapInstance.getObjCount()
+        id = mapInstance.getNextObjId()
         xml = ET.fromstring(f' \
             <object id="{id}" name="{placeholder.name}" type="{placeholder.type}" gid="{0}" x="{self.x*width}" y="{self.y*height}" width="{placeholder.width}" height="{placeholder.height}"> \
                 <properties> \
                     <property name="Level" type="int" value="1"/> \
                     <property name="Placeholder" value="dynamic"/> \
                     <property name="Citizens" value=""/>  \
+                    <property name="Buildings" value=""/>  \
                     <property name="Capacity" type="int" value="0"/>  \
                     <property name="CreationDate" value="{self.creationTime}"/> \
                     <property name="Price" value="{self.price}"/> \
@@ -32,4 +32,5 @@ class Zone:
         obj = TiledObject(mapInstance.returnMap(),xml)
         obj.gid = placeholder.gid
         obj.properties['Citizens'] = []
+        obj.properties['Buildings'] = []
         return obj

@@ -2,17 +2,22 @@ import xml.etree.ElementTree as ET
 from pytmx import TiledObject
 
 class Stadium:
+    """
+    Stadium has 6 tiles radius of satisfaction increase
+    It can  increase the satisfaction of Citizens in nearby RZones by 15%
+    """
+    price = 600
 
     def __init__(self,x,y,creationTime,mapInstance):
         self.x = x 
         self.y = y
-        self.price = 600
+        self.price = Stadium.price
         self.creationTime = creationTime
         objType = type(self).__name__
         placeholder = mapInstance.getStaticObjectByType(objType)
         width = mapInstance.getTileWidth()
         height = mapInstance.getTileHeight()
-        id = mapInstance.getNextObjId()+mapInstance.getObjCount()
+        id = mapInstance.getNextObjId()
         xml = ET.fromstring(f' \
             <object id="{id}" name="{placeholder.name}" type="{placeholder.type}" gid="{0}" x="{self.x*width}" y="{self.y*height}" width="{placeholder.width}" height="{placeholder.height}"> \
                 <properties> \
@@ -22,7 +27,9 @@ class Stadium:
                     <property name="CreationDate" value="{self.creationTime}"/> \
                     <property name="Price" value="{self.price}"/> \
                     <property name="Revenue" type="int" value="0"/> \
-                    <property name="MaintenanceFee" type="int" value="0"/> \
+                    <property name="MaintenanceFee" type="int" value="{int(self.price/2)}"/> \
+                    <property name="Radius" type="int" value="6"/> \
+                    <property name="Satisfaction" type="float" value="0.20"/> \
                 </properties> \
             </object>')
         obj = TiledObject(mapInstance.returnMap(),xml)
