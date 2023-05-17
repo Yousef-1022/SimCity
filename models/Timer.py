@@ -25,7 +25,7 @@ class Timer:
         self.game_speed_multiplier = game_speed_multiplier
         self.game_speed = game_speed
         self.time_factor = (60 / self.game_speed) * self.game_speed_multiplier
-        self.current_time = datetime.datetime(2023, 5, 2, 12, 0, 0)
+        self.current_time = datetime.datetime.now()
 
     def get_time_factor(self):
         return (60 / self.game_speed) * self.game_speed_multiplier
@@ -67,3 +67,5 @@ class Timer:
         diff_in_days = delta.days
         return diff_in_days
     
+    def get_timer_from_str(self,str_date):
+        return datetime.datetime.strptime(str_date, "%Y-%m-%d")

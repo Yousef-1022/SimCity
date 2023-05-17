@@ -119,14 +119,21 @@ def save_game(running, game_loop):
             for building in obj['properties']['Buildings']:
                 building['parent'] = ""
 
+    my_timer = []
+    my_timer.append(saved_game_speed)
+    my_timer.append(saved_speed_multiplier)
+    my_timer.append(saved_current_time_str)
     obj_count = map.getObjCount()
     next_obj_count = map.getNextObjId() 
+
     # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
     with open('game_state.pickle', 'wb') as f:
         pickle.dump(citizens, f)
         pickle.dump(list_of_tiled_objs, f)
+        pickle.dump(my_timer, f)
         pickle.dump(obj_count, f)
         pickle.dump(next_obj_count, f)
+
     for i in range(len(list_of_tiled_objs)):
         list_of_tiled_objs[i]['parent'] = parents[i]
         if list_of_tiled_objs[i]['type'][-4:] == 'Zone':
@@ -305,9 +312,6 @@ def run(running, loaded_game, flag):
     normal_cursor = True
     cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer",icons))
     cursorImgRect = cursorImg.get_rect()
-    day = timer.get_current_time().day
-    month = timer.get_current_time().month
-    game_start_time = timer.get_current_date_str()
     TAX_VARIABLE = 0.05
     game_speed  = 1
     global game_loop
@@ -318,6 +322,7 @@ def run(running, loaded_game, flag):
         with open('game_state.pickle', 'rb') as f:
             loaded_citizens = pickle.load(f)
             loaded_objs = pickle.load(f)
+            loaded_timer = pickle.load(f)
             loaded_objCount = pickle.load(f)
             loaded_nextObjCount = pickle.load(f)
             map.set_next_obj_id(loaded_nextObjCount)
@@ -366,6 +371,14 @@ def run(running, loaded_game, flag):
                     work_zone.properties['Citizens'].append(c)
                     c.work = work_zone
             c.satisfaction = loaded_citizen[3]
+        timer.game_speed = loaded_timer[0]
+        timer.game_speed_multiplier = loaded_timer[1]
+        timer.current_time = timer.get_timer_from_str(loaded_timer[2])
+        print(timer.get_current_date_str())
+
+    day = timer.get_current_time().day
+    month = timer.get_current_time().month
+    game_start_time = timer.get_current_date_str()
     if not loaded_game and flag:
         flag = False
         initial_citizens = []
@@ -555,7 +568,11 @@ def run(running, loaded_game, flag):
 
         pygame.display.update()
         SCREEN.fill((0, 0, 0))
-        global list_of_tiled_objs
+        global list_of_tiled_objs, saved_game_speed, saved_speed_multiplier, saved_current_time_str
+        saved_game_speed = timer.game_speed
+        saved_speed_multiplier = timer.game_speed_multiplier
+        saved_current_time_str = timer.get_current_date_str()
+
         list_of_tiled_objs = []
         for obj in map.get_all_objects(): 
             x = obj
