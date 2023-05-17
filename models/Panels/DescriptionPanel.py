@@ -6,8 +6,8 @@ class DescriptionPanel(Panel):
         super().__init__(x,y,width,height)
 
     def displayTime(self,screen,time,text_position):
-        font = pygame.font.Font(None,20)
-        text_surface = font.render(time, True, (255, 255, 255))
+        font = pygame.font.Font(None,21)
+        text_surface = font.render(time, True, (0, 0, 0))
         screen.blit(text_surface,text_position)
 
     def handle_game_speed_click(self, event, timer, game_speed_multiplier):
@@ -41,8 +41,8 @@ class DescriptionPanel(Panel):
 
         pygame.draw.rect(screen, (128, 128, 128), (label_x, label_y, button_width * 3 + button_spacing * 2, button_height))
 
-        font = pygame.font.Font(None, 20)
-        label_text = font.render("Game Speed:", True, (255, 255, 255))
+        font = pygame.font.Font(None, 21)
+        label_text = font.render("Game Speed:", True, (0, 0, 0))
         screen.blit(label_text, (label_x + 10, label_y + 14))
 
         button_colors = [(255, 0, 0), (255, 255, 0), (0, 255, 0)]  # Red, Yellow, Green for buttons
@@ -53,7 +53,7 @@ class DescriptionPanel(Panel):
         for i in range(3):
             button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
             pygame.draw.rect(screen, button_colors[i], button_rect)
-            button_text = font.render(button_labels[i], True, (255, 255, 255))
+            button_text = font.render(button_labels[i], True, (0, 0, 0))
             button_text_rect = button_text.get_rect(center=button_rect.center)
             screen.blit(button_text, button_text_rect)
             button_x += button_width + button_spacing
