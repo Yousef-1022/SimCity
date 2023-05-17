@@ -54,7 +54,7 @@ def remove_citizen_from_zone(tiledObj: TiledObject, citizen:Citizen) -> bool:
         tiledObj.properties['Citizens'].remove(citizen)
         return True
     except Exception as e:
-        #print(f"Fatal failure removing citizen {citizen} with data {citizen.__dict__} from {tiledObj}. Error: {e}")
+        print(f"Fatal failure removing citizen {citizen} with data {citizen.__dict__} from {tiledObj}. Error: {e}")
         return False
 
 
@@ -475,7 +475,7 @@ def add_citizens_to_game(map):
 def industrial_buildings_nearby(zone, map):
     distance_threshold = 5  # Minimum distance between residential and industrial zones
     industrial_buildings_nearby = []
-    I_zones = map.get_insustrial_zones()
+    I_zones = map.get_industrial_zones()
     distance = 0
     for I_zone in I_zones:
         distance  = distance_between_two(zone, I_zone)
@@ -568,7 +568,7 @@ def get_all_neighboring_objects(roads, map):
     return neighboring_objects
 
 
-def  get_neighboring_object(road, map):
+def get_neighboring_object(road, map):
     x = int (road.x // 32) 
     y = int (road.y // 32) 
     objects = map.get_all_objects()
@@ -580,7 +580,7 @@ def  get_neighboring_object(road, map):
                     return object
     return None
 
-def  get_all_neighboring_object(road, map):
+def get_all_neighboring_object(road, map):
     x = int (road.x // 32) 
     y = int (road.y // 32) 
     objects = map.get_all_objects()
@@ -683,7 +683,6 @@ def assign_to_work_zone(citizen,WorkZone,mapInstance) -> bool:
         simulate_building_addition(WorkZone,mapInstance)
         return True
     else:
-        #print("Can't assign citizen cuz W_zone is full", WorkZone.properties['Capacity'])
         return False
 
 def delete_citizen(c:Citizen) -> bool:
@@ -699,7 +698,7 @@ def delete_citizen(c:Citizen) -> bool:
         del Citizen.citizens[c.id]
         return True
     except Exception as e:
-        #print(f"Fatal failure deleting citizen {c} with data: {c.__dict__}. Error: {e}")
+        print(f"Fatal failure deleting citizen {c} with data: {c.__dict__}. Error: {e}")
         return False
         
 def handle_disaster_logic(map,givenDate:Timer):
@@ -712,11 +711,13 @@ def handle_disaster_logic(map,givenDate:Timer):
                 if (obj.type == 'ResidentialZone'):
                     rmf = []
                     for c in obj.properties['Citizens']:
-                        rmf.append(c.id)
+                        rmf.append(c)
                         if (c.work):
-                            remove_citizen_from_zone(obj,c.work)
-                    for i in rmf:
-                        c = get_citizen_by_id(i)
+                            remove_citizen_from_zone(c.work,c)
+                            c.work = None
+                    for c in rmf:
+                        remove_citizen_from_zone(obj,c)
+                        c.home = None
                         delete_citizen(c)
                     obj.properties['Citizens'] = []
                     for b in lnked:
@@ -724,9 +725,12 @@ def handle_disaster_logic(map,givenDate:Timer):
                     map.reclassify_zone(obj)
                     
                 elif (obj.type == 'IndustrialZone' or obj.type == 'ServiceZone'):
+                    rmf = []
                     for c in obj.properties['Citizens']:
-                        remove_citizen_from_zone(obj,c)
+                        rmf.append(c)
                         c.work = None
+                    for c in rmf:
+                        remove_citizen_from_zone(obj,c)
                     obj.properties['Citizens'] = []
                     for b in lnked:
                         map.remove_disaster_or_building(b)

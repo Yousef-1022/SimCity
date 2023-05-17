@@ -235,14 +235,23 @@ def handle_prompt(clckd_crds,clckd_zn,upgrd,rclssfy):
                 rclssfy = map.draw_prompt_to_delete(clckd_crds,clckd_zn)
             else:
                 # Handle already clicked Zone (RZone,CZone,IZone)
-                if(clckd_zn.properties['Level'] <= 3):
+                upgrd = rclssfy = None
+                if(clckd_zn.properties['Level'] <= 3 and clckd_zn.type[-4:] == 'Zone'):
                     btn = map.draw_prompt(clckd_crds,clckd_zn)
-                    if (len(clckd_zn.properties['Citizens']) == 0):
+                    amount_citizens = len(clckd_zn.properties['Citizens'])
+                    amount_buildings = len(clckd_zn.properties['Buildings'])
+                    if (amount_citizens == 0 and amount_buildings == 0):
                         upgrd = None
                         rclssfy = btn
+                    elif (amount_citizens >= 1):
+                        if(clckd_zn.type == 'ResidentialZone' and (amount_buildings <= 4 and amount_buildings > 0)):
+                            upgrd = btn
+                            rclssfy = None
+                        elif (clckd_zn.type == 'IndustrialZone' or  clckd_zn.type == 'ServiceZone'):
+                            upgrd = btn
+                            rclssfy = None
                     else:
-                        upgrd = btn
-                        rclssfy = None
+                        upgrd = rclssfy = None
                 else:
                     upgrd = rclssfy = None
         else:
@@ -256,14 +265,23 @@ def handle_prompt(clckd_crds,clckd_zn,upgrd,rclssfy):
                     rclssfy = map.draw_prompt_to_delete(clckd_crds,clckd_zn)
                 else:
                     # Handle already clicked Zone (RZone,CZone,IZone)
-                    if(clckd_zn.properties['Level'] <= 3):
+                    upgrd = rclssfy = None
+                    if(clckd_zn.properties['Level'] <= 3 and clckd_zn.type[-4:]):
                         btn = map.draw_prompt(clckd_crds,clckd_zn)
-                        if (len(clckd_zn.properties['Citizens']) == 0):
+                        amount_citizens = len(clckd_zn.properties['Citizens'])
+                        amount_buildings = len(clckd_zn.properties['Buildings'])
+                        if (amount_citizens == 0 and amount_buildings == 0):
                             upgrd = None
                             rclssfy = btn
+                        elif (amount_citizens >= 1):
+                            if(clckd_zn.type == 'ResidentialZone' and (amount_buildings <= 4 and amount_buildings > 0)):
+                                upgrd = btn
+                                rclssfy = None
+                            elif (clckd_zn.type == 'IndustrialZone' or  clckd_zn.type == 'ServiceZone'):
+                                upgrd = btn
+                                rclssfy = None
                         else:
-                            upgrd = btn
-                            rclssfy = None
+                            upgrd = rclssfy = None
                     else:
                         upgrd = rclssfy = None
     return clckd_crds, clckd_zn, upgrd, rclssfy
