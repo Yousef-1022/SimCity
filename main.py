@@ -335,12 +335,15 @@ def run(running, loaded_game, flag):
             obj = ""
             if class_obj is not None:
                 obj = class_obj(loaded_obj['x']//32,loaded_obj['y']//32 ,timer.get_current_date_str(),map)    # Change
+                obj.instance.properties['CreationDate'] = loaded_obj['properties']['CreationDate']
                 if (loaded_obj['type'][-4:] == 'Zone'):
                     obj.instance.properties['Level'] = loaded_obj['properties']['Level']
                     obj.instance.properties['Capacity'] = loaded_obj['properties']['Capacity']
                     obj.instance.properties['MaintenanceFee'] = loaded_obj['properties']['MaintenanceFee']
-                    obj.instance.properties['CreationDate'] = loaded_obj['properties']['CreationDate']
                     obj.instance.properties['Revenue'] = loaded_obj['properties']['Revenue']
+                elif (loaded_obj['type'] == "Forest"):
+                    obj.instance.properties['Year'] = loaded_obj['properties']['Year']
+                    obj.instance.properties['Mature'] = loaded_obj['properties']['Mature']
                 obj.instance.id = loaded_obj['id']
                 map.addObject(obj.instance,player,False,True)
                 class_tobuild = -1
@@ -374,7 +377,6 @@ def run(running, loaded_game, flag):
         timer.game_speed = loaded_timer[0]
         timer.game_speed_multiplier = loaded_timer[1]
         timer.current_time = timer.get_timer_from_str(loaded_timer[2])
-        print(timer.get_current_date_str())
 
     day = timer.get_current_time().day
     month = timer.get_current_time().month
@@ -421,6 +423,14 @@ def run(running, loaded_game, flag):
             add_citizens_to_game(map)
             for zone in map.get_residential_zones():
                 assign_zone_citizens_to_work(zone, map)
+            if (player.money <= 0):
+                humans = Citizen.get_all_citizens()
+                for key in humans:
+                    res = humans[key].satisfaction - (humans[key].satisfaction * 0.35)
+                    if (res <= 0):
+                        humans[key].satisfaction = 0.0
+                    else:
+                        humans[key].satisfaction = res
             month = timer.get_current_time().month
         
         
