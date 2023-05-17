@@ -78,7 +78,9 @@ def show_menu(screen, running, game_loop):
 # Game simulation variables
 player = Player("HUMAN", 100000)
 game_speed  = 1
-timer = Timer(game_speed, 200)
+game_speed_multiplier = [100,200,300]
+chosen_speed = 1
+timer = Timer(game_speed, game_speed_multiplier[chosen_speed])
 paused  = False
 
 # Initialize grid system.
@@ -286,7 +288,7 @@ def run(running, loaded_game, flag):
     month = timer.get_current_time().month
     game_start_time = timer.get_current_date_str()
     TAX_VARIABLE = 0.05
-    game_speed  = 1
+    # game_speed  = 1
     global game_loop
     class_tobuild = ""
     # handle saved tiled objects
@@ -362,6 +364,7 @@ def run(running, loaded_game, flag):
 
         description_panel.display(SCREEN,24,(10,10),(128,128,128),f"Funds: ${player.money} , Citizens: {get_total_citizens()}",(255,255,255))
         description_panel.displayTime(SCREEN,f"Time: {timer.get_current_date_str()}",(500,10))
+        description_panel.display_game_speed(SCREEN, timer, game_speed_multiplier)
         price_panel.display(SCREEN,24,(96, SCREEN.get_height() - 20),(128,128,128),f'${(held_price)} for {class_tobuild}',(255,255,255))
         builder_panel.display(SCREEN,0,(0,0),(90,90,90),"",(0,0,0))
         builder_panel.display_assets(SCREEN,icons)
@@ -423,7 +426,9 @@ def run(running, loaded_game, flag):
             
             
         for event in pygame.event.get(): # mouse button click, keyboard, or the x button.
-            
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                description_panel.handle_game_speed_click(event, timer, game_speed_multiplier)
+
             mouse_pos = pygame.mouse.get_pos()
             
             if pygame.mouse.get_pressed()[2]:
