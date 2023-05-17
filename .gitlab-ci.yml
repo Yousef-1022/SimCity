@@ -11,3 +11,6 @@ test-job:
   script:
     - echo "running testcases..."
     - python3 -m pytest tests/test_game.py
+  only:
+    - master
+    - develop
