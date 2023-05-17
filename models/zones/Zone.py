@@ -14,7 +14,7 @@ class Zone:
         placeholder = mapInstance.getStaticObjectByType(zoneType)
         width = mapInstance.getTileWidth()
         height = mapInstance.getTileHeight()
-        id = mapInstance.getNextObjId()+mapInstance.getObjCount()
+        id = mapInstance.getNextObjId()
         xml = ET.fromstring(f' \
             <object id="{id}" name="{placeholder.name}" type="{placeholder.type}" gid="{0}" x="{self.x*width}" y="{self.y*height}" width="{placeholder.width}" height="{placeholder.height}"> \
                 <properties> \
@@ -26,7 +26,6 @@ class Zone:
                     <property name="CreationDate" value="{self.creationTime}"/> \
                     <property name="Price" value="{self.price}"/> \
                     <property name="Revenue" type="int" value="0"/> \
-                    <property name="connected_roads"  value=""/> \
                     <property name="MaintenanceFee" type="int" value="0"/> \
                 </properties> \
             </object>')
@@ -34,5 +33,4 @@ class Zone:
         obj.gid = placeholder.gid
         obj.properties['Citizens'] = []
         obj.properties['Buildings'] = []
-        obj.properties['connected_roads'] = []
         return obj
