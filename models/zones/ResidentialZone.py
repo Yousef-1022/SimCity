@@ -8,7 +8,7 @@ class ResidentialZone(Zone):
     def __init__(self,x,y,creationTime,mapInstance):
         super().__init__(x,y,creationTime)
         self.price = ResidentialZone.price
-        self.instance = (super().createZoneObj(mapInstance))
+        self.instance = (super().create_zone_obj(mapInstance))
         self.instance.properties['MaintenanceFee'] = 200
         self.instance.properties['Capacity'] = 20
         

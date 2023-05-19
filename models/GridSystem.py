@@ -2,7 +2,7 @@ from models.Tile import Tile
 
 class GridSystem:
     def __init__(self,mapInstance):
-        map = mapInstance.returnMap()
+        map = mapInstance.return_map()
         self.rows = map.width
         self.cols = map.height
         self.matrix = [[None for j in range(self.cols)] for i in range(self.rows)]

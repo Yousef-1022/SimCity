@@ -16,10 +16,10 @@ class Road:
     def create_road_obj(self,mapInstance) -> TiledObject:
         """Creates a road object, requires the map to be passed"""
         road_type = type(self).__name__
-        placeholder = mapInstance.getStaticObjectByType(road_type)
-        width = mapInstance.getTileWidth()
-        height = mapInstance.getTileHeight()
-        id = mapInstance.getNextObjId()
+        placeholder = mapInstance.get_static_object_by_type(road_type)
+        width = mapInstance.get_tile_width()
+        height = mapInstance.get_tile_height()
+        id = mapInstance.get_next_obj_id()
         xml = ET.fromstring(f' \
             <object id="{id}" name="{placeholder.name}" type="{placeholder.type}" gid="{0}" x="{self.x*width}" y="{self.y*height}" width="{placeholder.width}" height="{placeholder.height}"> \
                 <properties> \
@@ -30,7 +30,7 @@ class Road:
                     <property name="Citizens" value=""/>  \
                 </properties> \
             </object>')
-        obj = TiledObject(mapInstance.returnMap(),xml)
+        obj = TiledObject(mapInstance.return_map(),xml)
         obj.gid = placeholder.gid
         obj.properties['Citizens'] = []
         return obj

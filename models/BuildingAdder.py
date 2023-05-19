@@ -56,7 +56,7 @@ def form_tiled_obj (TiledObj:TiledObject,mapInstance) -> TiledObject:
         ytile=xy[1]*TiledObj.parent.tileheight
     else:
         the_name = f'{TiledObj.name}LVL{TiledObj.properties["Level"]}'
-    placeholder = mapInstance.getStaticObjectByName(the_name)        
+    placeholder = mapInstance.get_static_object_by_name(the_name)        
     xml = ET.fromstring(f' \
         <object id="{-1}" name="{placeholder.name}" type="{placeholder.type}" gid="{0}" x="{xtile}" y="{ytile}" width="{placeholder.width}" height="{placeholder.height}"> \
             <properties> \
@@ -82,7 +82,7 @@ def create_building (dic,mapInstance) -> TiledObject:
     Returns:
         TiledObject which must be put on the ObjectsTop layer
     """
-    placeholder = mapInstance.getStaticObjectByName(dic["name"])
+    placeholder = mapInstance.get_static_object_by_name(dic["name"])
     xml = ET.fromstring(f' \
         <object id="{dic["id"]}" name="{dic["name"]}" type="{dic["type"]}" gid="{0}" x="{dic["x"]}" y="{dic["y"]}" width="{dic["width"]}" height="{dic["height"]}"> \
             <properties> \
@@ -91,6 +91,6 @@ def create_building (dic,mapInstance) -> TiledObject:
             </properties> \
         </object>')
     
-    obj = TiledObject(mapInstance.returnMap(),xml)
+    obj = TiledObject(mapInstance.return_map(),xml)
     obj.gid = placeholder.gid
     return obj
