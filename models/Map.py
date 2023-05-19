@@ -18,18 +18,18 @@ class Map:
     Methods:
         __init__(self, screen, leftPanelWidth, topOrBottomPanelHeight): Initializes the Map object.
         display(self): Displays the map.
-        handleScroll(self, eventKey): Handles map scrolling based on player input.
-        addObject(self, obj, player): Adds an object to the map.
-        getClickedTile(self, mousePos): Returns the coordinates of the clicked tile.
-        getTileSetFromGid(self, tile_gid): Returns the tileset associated with the given GID.
-        getActualMapWidth(self): Returns the actual width of the map.
-        getActualMapHeight(self): Returns the actual height of the map.
-        returnMap(self): Returns the TMX map object.
-        getNextObjId(self): Returns the next object ID.
-        getStaticObjectByType(self, type): Returns a TiledObject of the given type.
-        getObjCount(self): Returns the count of objects in the map.
-        getTileHeight(self): Returns the tile height.
-        getTileWidth(self): Returns the tile width.
+        handle_scroll(self, eventKey): Handles map scrolling based on player input.
+        add_object(self, obj, player): Adds an object to the map.
+        get_clicked_tile(self, mousePos): Returns the coordinates of the clicked tile.
+        get_tileset_from_gid(self, tile_gid): Returns the tileset associated with the given GID.
+        get_actual_map_width(self): Returns the actual width of the map.
+        get_actual_map_height(self): Returns the actual height of the map.
+        return_map(self): Returns the TMX map object.
+        get_next_obj_id(self): Returns the next object ID.
+        get_static_object_by_type(self, type): Returns a TiledObject of the given type.
+        get_object_count(self): Returns the count of objects in the map.
+        get_tile_height(self): Returns the tile height.
+        get_tile_width(self): Returns the tile width.
         collide_with_zone(self, zone1, zone2): Checks if two zones overlap.
         collide_with_water(self, obj_x_coord, obj_y_coord, obj_width, obj_height): Checks if an object collides with water.
 
@@ -75,7 +75,7 @@ class Map:
         visible_surface.blit(map_surface, (0, 0), pygame.Rect(top_left[0], top_left[1], visible_surface.get_width(), visible_surface.get_height()))
         self.__screen.blit(visible_surface, (self.__panel_width+1, self.__panel_height+1))
 
-    def handleScroll(self,eventKey):
+    def handle_scroll(self,eventKey):
         """
         Scrolls the map when the player uses arrow keys.
 
@@ -83,8 +83,8 @@ class Map:
             eventKey: The key corresponding to the arrow key pressed.
         """
         x , y = self.__scroll_x , self.__scroll_y
-        noX = self.__map.width-(self.getActualMapWidth()//self.__map.tilewidth)     # Amount of x tiles which the screen does not render
-        noY = self.__map.height-(self.getActualMapHeight()//self.__map.tileheight)  # Amount of y tiles which the screen does not render
+        noX = self.__map.width-(self.get_actual_map_width()//self.__map.tilewidth)     # Amount of x tiles which the screen does not render
+        noY = self.__map.height-(self.get_actual_map_height()//self.__map.tileheight)  # Amount of y tiles which the screen does not render
         if eventKey == pygame.K_LEFT:
             x -= self.__map.tilewidth
             if(x>=0):
@@ -104,7 +104,7 @@ class Map:
         else:
             pass
         
-    def addObject(self, obj, player,init_tree=False,loaded_game=False):
+    def add_object(self, obj, player,init_tree=False,loaded_game=False):
         """
         Adds an instantiated class into the list of objects located on the Objects layer.
 
@@ -137,6 +137,14 @@ class Map:
         return obj
     
     def remove_road(self, x, y, obj_type, map):
+        """
+        Removes road if eligible
+        
+        Args:
+        x: xTile coords
+        y: yTile coords
+        obj_type: Road Type
+        """
         obj_layer = self.__map.get_layer_by_name("Objects")
         roads = self.get_all_roads()
         for obj in obj_layer:
@@ -156,11 +164,14 @@ class Map:
                     self.__objcount-=1
                 break
 
-    def get_all_roads(self):
+    def get_all_roads(self) -> list:
+        """
+        Returns a list consisting of all the roads created
+        """
         objects =  self.get_all_objects()     
         return [obj for obj in objects if obj.type == "Road"]
     
-    def getClickedTile(self,mousePos):
+    def get_clicked_tile(self,mousePos) -> tuple:
         """
         Returns the map's actual tile coordinates based on the mouse position.
 
@@ -184,7 +195,7 @@ class Map:
         else:
             return (-1,-1)
     
-    def getTileSetFromGid(self,tile_gid):
+    def get_tileset_from_gid(self,tile_gid):
         """
         Returns the tileset associated with the given GID.
 
@@ -196,7 +207,7 @@ class Map:
         """
         return self.__map.get_tileset_from_gid(tile_gid)
     
-    def getActualMapWidth(self):
+    def get_actual_map_width(self):
         """
         Returns the actual width of the map.
 
@@ -205,7 +216,7 @@ class Map:
         """
         return self.__screen.get_width()-self.__panel_width
     
-    def getActualMapHeight(self):
+    def get_actual_map_height(self):
         """
         Returns the actual height of the map.
 
@@ -214,7 +225,7 @@ class Map:
         """
         return self.__screen.get_height()-(2*self.__panel_height)
     
-    def returnMap(self):
+    def return_map(self):
         """
         Returns the TMX map object.
 
@@ -223,7 +234,7 @@ class Map:
         """
         return self.__map
     
-    def getNextObjId(self):
+    def get_next_obj_id(self):
         """
         Increases the Map.tmx internal object counter
         
@@ -235,12 +246,24 @@ class Map:
         return self.__map.nextobjectid
     
     def set_next_obj_id(self,id):
+        """
+        Sets the map's TileMap nextobjectidid attribute to the given Id
+        
+        Usecase:
+        Loading the game 
+        """
         self.__map.nextobjectid = id
         
     def set_obj_count(self,cnt):
+        """
+        Sets the map's objcount attribute to the given Id
+        
+        Usecase:
+        Loading game 
+        """
         self.__objcount = cnt
     
-    def getStaticObjectByType(self,type):
+    def get_static_object_by_type(self,type):
         """
         Returns a TiledObject of the given type.
 
@@ -254,7 +277,7 @@ class Map:
             if type == o.type:
                 return o
             
-    def getStaticObjectByName(self,name):
+    def get_static_object_by_name(self,name):
         """
         Returns a TiledObject of the given name.
 
@@ -268,7 +291,7 @@ class Map:
             if name == o.name:
                 return o
             
-    def getObjCount(self):
+    def get_object_count(self):
         """
         Returns the count of objects in the map.
 
@@ -277,7 +300,7 @@ class Map:
         """
         return self.__objcount
     
-    def getTileHeight(self):
+    def get_tile_height(self):
         """
         Returns the tile height.
 
@@ -286,7 +309,7 @@ class Map:
         """
         return self.__map.tileheight
     
-    def getTileWidth(self):
+    def get_tile_width(self):
         """
         Returns the tile width.
 

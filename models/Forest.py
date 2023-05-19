@@ -14,10 +14,10 @@ class Forest:
         self.price = Forest.price
         self.creationTime = creationTime
         objType = type(self).__name__
-        placeholder = mapInstance.getStaticObjectByType(objType)
-        width = mapInstance.getTileWidth()
-        height = mapInstance.getTileHeight()
-        id = mapInstance.getNextObjId()
+        placeholder = mapInstance.get_static_object_by_type(objType)
+        width = mapInstance.get_tile_width()
+        height = mapInstance.get_tile_height()
+        id = mapInstance.get_next_obj_id()
         xml = ET.fromstring(f' \
             <object id="{id}" name="{placeholder.name}" type="{placeholder.type}" gid="{0}" x="{self.x*width}" y="{self.y*height}" width="{placeholder.width}" height="{placeholder.height}"> \
                 <properties> \
@@ -31,6 +31,6 @@ class Forest:
                     <property name="Radius" type="int" value="3"/> \
                 </properties> \
             </object>')
-        obj = TiledObject(mapInstance.returnMap(),xml)
+        obj = TiledObject(mapInstance.return_map(),xml)
         obj.gid=placeholder.gid
         self.instance = obj
