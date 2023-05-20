@@ -1,15 +1,16 @@
 import xml.etree.ElementTree as ET
 from pytmx import TiledObject
 
+
 class PoliceDepartment:
     """
     PoliceDepartment has 4 tiles radius of satisfaction increase
     It can increase the satisfaction of Citizens in nearby RZones by 10%
     """
     price = 500
-    
-    def __init__(self,x,y,creationTime,mapInstance):
-        self.x = x 
+
+    def __init__(self, x, y, creationTime, mapInstance):
+        self.x = x
         self.y = y
         self.price = PoliceDepartment.price
         self.creationTime = creationTime
@@ -32,7 +33,7 @@ class PoliceDepartment:
                     <property name="Satisfaction" type="float" value="0.15"/> \
                 </properties> \
             </object>')
-        obj = TiledObject(mapInstance.return_map(),xml)
-        obj.gid=placeholder.gid
+        obj = TiledObject(mapInstance.return_map(), xml)
+        obj.gid = placeholder.gid
         obj.properties['Citizens'] = []
         self.instance = obj

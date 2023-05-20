@@ -60,7 +60,7 @@ class TestGame(unittest.TestCase):
         SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         description_panel = DescriptionPanel(0, 0, SCREEN.get_width(), 32)
         builder_panel = BuilderPanel(0, 32, 96, SCREEN.get_height() - 32)
-        map = Map(SCREEN, builder_panel.getWidth(), description_panel.getHeight())
+        map = Map(SCREEN, builder_panel.get_width(), description_panel.getHeight())
         game_speed = 1
         timer = Timer(game_speed, 700)
         timer.update_time(False)

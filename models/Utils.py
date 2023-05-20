@@ -1,6 +1,11 @@
 import os
+import pickle
 import random
+import sys
+import pygame
 from pytmx import TiledObject
+from models.Forest import Forest
+from models.TaxAllocator import TaskAllocator
 from models.Timer import Timer
 from models.BuildingAdder import form_tiled_obj
 from models.Citizen import *
@@ -51,8 +56,30 @@ def get_linked_ids_for_obj(obj: TiledObject) -> list:
     return res
 
 
-def get_image_size(image_type):
-    if image_type == "ResidentialZone" or image_type == "IndustrialZone" or "ServiceZone" == image_type:
+def get_image_size(image_type: str) -> int:
+    """
+    Returns the size of an image based on the given image type.
+
+    Args:
+        image_type (str): The type of the image.
+
+    Returns:
+        int: The size of the image.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> get_image_size("ResidentialZone")
+        128
+        >>> get_image_size("PoliceDepartment")
+        96
+        >>> get_image_size("Stadium")
+        160
+        >>> get_image_size("UnknownType")
+        32
+    """
+    if image_type == "ResidentialZone" or image_type == "IndustrialZone" or image_type == "ServiceZone":
         return 128
     elif image_type == "PoliceDepartment" or image_type == "Forest" or image_type == "Disaster":
         return 96
@@ -164,25 +191,74 @@ def get_path_between_points(p1, p2) -> list:
         return h+v
 
 
-def get_zone_satisfaction(zone: TiledObject):
+def get_zone_satisfaction(zone: TiledObject) -> float:
     """
-    Returns the amount of satisfaction of the zone
+    Returns the average satisfaction of the citizens in the given zone.
+
+    Args:
+        zone (TiledObject): The zone object containing the citizens.
+
+    Returns:
+        float: The average satisfaction of the citizens.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> zone_obj = create_zone_obj(...)
+        >>> get_zone_satisfaction(zone_obj)
+        75.0
     """
     sat = 0.0
     for c in zone.properties['Citizens']:
         sat += c.satisfaction
-    return sat/float(len(zone.properties['Citizens']))
+    return sat / float(len(zone.properties['Citizens']))
 
 
 def get_all_connected_roads(road, road_list):
+    """
+    Returns a set of all roads connected to the given road using depth-first search (DFS).
+
+    Args:
+        road: The starting road.
+        road_list: The list of all roads.
+
+    Returns:
+        set: A set of all connected roads.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> roads = [road1, road2, road3, road4]
+        >>> get_all_connected_roads(road1, roads)
+        {road1, road2, road3}
+    """
     visited = set()
-    # Perform DFS traversal starting from the first road
     dfs(road, visited, road_list)
-    # print(visited)
     return visited
 
 
 def get_connected_roads(current_road, road_list):
+    """
+    Returns a list of all roads connected to the given current road.
+
+    Args:
+        current_road: The current road coordinates as a tuple (x, y).
+        road_list: The list of all roads.
+
+    Returns:
+        list: A list of all connected roads.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> roads = [road1, road2, road3, road4]
+        >>> current_road = (32, 64)
+        >>> get_connected_roads(current_road, roads)
+        [road1, road2, road3]
+    """
     connected_roads = []
     x = int(current_road[0] // 32) - 1
     y = int(current_road[1] // 32)
@@ -216,25 +292,62 @@ def get_connected_roads(current_road, road_list):
 
 
 def get_connected_road_tiles(x, y, direction, roads):
+    """
+    Returns the connected road tile based on the given coordinates and direction.
+
+    Args:
+        x (int): The x-coordinate of the current tile.
+        y (int): The y-coordinate of the current tile.
+        direction (str): The direction to search for the connected road ('U', 'D', 'L', 'R').
+        roads (list): The list of all roads.
+
+    Returns:
+        road: The connected road tile, or None if no road is found.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> roads = [road1, road2, road3, road4]
+        >>> get_connected_road_tiles(2, 3, 'U', roads)
+        road2
+    """
     obj_coord_x = x
     obj_coord_y = y
     for road in roads:
-        if (direction == 'U'):
+        if direction == 'U':
             if int(road.x // 32) == x and int(road.y // 32) == obj_coord_y:
                 return road
-        elif (direction == 'D'):
+        elif direction == 'D':
             if int(road.x // 32) == x and int(road.y // 32) == obj_coord_y:
                 return road
-        elif (direction == 'L'):
+        elif direction == 'L':
             if int(road.x // 32) == obj_coord_x and int(road.y // 32) == y:
                 return road
-        elif (direction == 'R'):
+        elif direction == 'R':
             if int(road.x // 32) == obj_coord_x and int(road.y // 32) == y:
                 return road
     return None
 
 
 def get_outer_circumference(obj: TiledObject):
+    """
+    Returns the outer circumference tiles surrounding the given object.
+
+    Args:
+        obj (TiledObject): The object for which to calculate the outer circumference.
+
+    Returns:
+        list: A list of (x, y) coordinates representing the outer circumference tiles.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> tiled_obj = TiledObject(...)
+        >>> get_outer_circumference(tiled_obj)
+        [(x1, y1), (x2, y2), ...]
+    """
     tilex = (obj.x // 32)
     tiley = (obj.y // 32)
     res = []
@@ -245,15 +358,33 @@ def get_outer_circumference(obj: TiledObject):
     for i in range(0, 4):
         res.append((tilex - 1, tiley + i))
         res.append((tilex + 4, tiley + i))
-
     return list(set(res))
 
 
 def get_connected_by_road_objects(zone, map):
+    """
+    Returns the objects connected to the given zone through roads.
+
+    Args:
+        zone: The zone object for which to find connected objects.
+        map: The map object containing the roads and other objects.
+
+    Returns:
+        list: A list of objects connected to the zone through roads.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> zone_obj = Zone(...)
+        >>> map_obj = Map(...)
+        >>> get_connected_by_road_objects(zone_obj, map_obj)
+        [obj1, obj2, ...]
+    """
     roads = map.get_roads()
     c = get_outer_circumference(zone)
     roads_connected_to_zone = []
-    for tup in c:  # get all sorounding roads to the zone
+    for tup in c:  # get all surrounding roads to the zone
         for road in roads:
             if int(tup[0]) == int(road.x // 32) and int(tup[1]) == int(road.y // 32):
                 roads_connected_to_zone.append(road)
@@ -264,15 +395,53 @@ def get_connected_by_road_objects(zone, map):
 
 
 def get_neighboring_objects(roads, map):
+    """
+    Returns a list of neighboring objects connected to the given roads.
+
+    Args:
+        roads (list): A list of road objects.
+        map: The map object containing the objects.
+
+    Returns:
+        list: A list of neighboring objects connected to the roads.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> road_objs = [road1, road2, ...]
+        >>> map_obj = Map(...)
+        >>> get_neighboring_objects(road_objs, map_obj)
+        [obj1, obj2, ...]
+    """
     neighboring_objects = []
     for road in roads:
-        object = get_neighboring_object(road, map)
-        if object:
-            neighboring_objects.append(object)
+        obj = get_neighboring_object(road, map)
+        if obj:
+            neighboring_objects.append(obj)
     return neighboring_objects
 
 
 def get_all_neighboring_objects(roads, map):
+    """
+    Returns a list of all neighboring objects connected to the given roads.
+
+    Args:
+        roads (list): A list of road objects.
+        map: The map object containing the objects.
+
+    Returns:
+        list: A list of all neighboring objects connected to the roads.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> road_objs = [road1, road2, ...]
+        >>> map_obj = Map(...)
+        >>> get_all_neighboring_objects(road_objs, map_obj)
+        [obj1, obj2, ...]
+    """
     neighboring_objects = []
     for road in roads:
         object = get_all_neighboring_object(road, map)
@@ -281,20 +450,59 @@ def get_all_neighboring_objects(roads, map):
     return neighboring_objects
 
 
+
 def get_neighboring_object(road, map):
+    """
+    Returns the neighboring object connected to the given road.
+
+    Args:
+        road: The road object.
+        map: The map object containing the objects.
+
+    Returns:
+        object: The neighboring object connected to the road, or None if no object is found.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> road_obj = road1
+        >>> map_obj = Map(...)
+        >>> get_neighboring_object(road_obj, map_obj)
+        obj1
+    """
     x = int(road.x // 32)
     y = int(road.y // 32)
     objects = map.get_all_objects()
-    for object in objects:
-        if object.type == "IndustrialZone" or object.type == "ServiceZone":
-            c = get_outer_circumference(object)
+    for obj in objects:
+        if obj.type == "IndustrialZone" or obj.type == "ServiceZone":
+            c = get_outer_circumference(obj)
             for tup in c:
                 if int(tup[0]) == x and int(tup[1]) == y:
-                    return object
+                    return obj
     return None
 
 
 def get_all_neighboring_object(road, map):
+    """
+    Returns all neighboring objects connected to the given road.
+
+    Args:
+        road: The road object.
+        map: The map object containing the objects.
+
+    Returns:
+        List: A list of neighboring objects connected to the road, or an empty list if no objects are found.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> road_obj = road1
+        >>> map_obj = Map(...)
+        >>> get_all_neighboring_object(road_obj, map_obj)
+        [obj1, obj2, obj3]
+    """
     x = int(road.x // 32)
     y = int(road.y // 32)
     objects = map.get_all_objects()
@@ -306,15 +514,52 @@ def get_all_neighboring_object(road, map):
     return None
 
 
+
 def get_num_of_unemployed_in_zone(zone):
+    """
+    Returns the number of unemployed citizens in the given zone.
+
+    Args:
+        zone: The zone object.
+
+    Returns:
+        int: The number of unemployed citizens in the zone.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> zone_obj = zone1
+        >>> get_num_of_unemployed_in_zone(zone_obj)
+        5
+    """
     cnt = 0
     for citizen in zone.properties['Citizens']:
-        if citizen.work != None:
+        if citizen.work is None:
             cnt += 1
     return cnt
 
 
 def get_capacity_and_citizens_of_zones(zones):
+    """
+    Calculates the total capacity and total number of citizens in a list of zones.
+
+    Args:
+        zones (list): A list of zone objects.
+
+    Returns:
+        tuple: A tuple containing the total capacity and total number of citizens.
+            The first element is the total capacity (int) of all zones.
+            The second element is the total number of citizens (int) in all zones.
+
+    Raises:
+        None.
+
+    Examples:
+        >>> zone_list = [zone1, zone2, zone3]
+        >>> get_capacity_and_citizens_of_zones(zone_list)
+        (300, 150)
+    """
     total_capacity = 0
     total_number_of_citizens = 0
     for zone in zones:
@@ -366,6 +611,23 @@ def add_citizen(tiledObj: TiledObject, citizen):
 
 
 def add_citizens_to_game(map):
+    """
+    Adds citizens to the game based on various factors.
+
+    Args:
+        map (Map): The game map.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Examples:
+        map = Map()
+        add_citizens_to_game(map)
+    """
+
     distance_threshold = 5  # Minimum distance between residential and working zones
     possible_citizens = 5  # Max possible amount of citizens to arrive during the time period
     part2 = 0.0
@@ -422,15 +684,52 @@ def add_citizens_to_game(map):
 
 
 def assign_zone_citizens_to_work(zone, map):
+    """
+    Assigns citizens of a zone to work zones based on the available work places.
+
+    Args:
+        zone (TiledObject): The zone whose citizens need to be assigned to work zones.
+        map (Map): The map containing the zone and work places.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Examples:
+        zone = ResidentialZone()
+        map = Map()
+        assign_zone_citizens_to_work(zone, map)
+    """
     available_work_places = [obj for obj in get_connected_by_road_objects(
         zone, map) if len(obj.properties['Citizens']) < obj.properties['Capacity']]
-    # print(available_work_places)
     for citizen in zone.properties['Citizens']:
         if citizen.work == None:
             assign_to_work_zones(citizen, available_work_places, map)
 
 
 def assign_to_work_zones(citizen, available_work_places, map):
+    """
+    Assigns a citizen to a work zone based on the available work places.
+
+    Args:
+        citizen (Citizen): The citizen to be assigned to a work zone.
+        available_work_places (list): A list of available work places (zones) to choose from.
+        map (Map): The map containing the work places (zones).
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Examples:
+        citizen = Citizen()
+        available_work_places = [zone1, zone2, zone3]
+        map = Map()
+        assign_to_work_zones(citizen, available_work_places, map)
+    """
     I_zones = [
         zone for zone in available_work_places if zone.type == "IndustrialZone"]
     S_zones = [
@@ -447,17 +746,33 @@ def assign_to_work_zones(citizen, available_work_places, map):
         total_number_of_citizens_in_I_zones
     needed_citizens_for_S_zones = total_capacity_of_S_zones - \
         total_number_of_citizens_in_S_zones
-    # print("needed_citizens_for_I_zones", needed_citizens_for_I_zones )
-    # print("needed_citizens_for_S_zones", needed_citizens_for_S_zones )
     if needed_citizens_for_I_zones > needed_citizens_for_S_zones:
         assign_citizen_to_random_zone(citizen, I_zones, map)
-        # print("adding citizen to I")
     else:
         assign_citizen_to_random_zone(citizen, S_zones, map)
-        # print("adding citizen to S")
 
 
 def assign_citizen_to_random_zone(c, zones, map):
+    """
+    Assigns a citizen to a randomly selected zone from the given list of zones.
+
+    Args:
+        c (Citizen): The citizen to be assigned to a zone.
+        zones (list): A list of zones to choose from.
+        map (Map): The map containing the zones.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Examples:
+        c = Citizen()
+        zones = [zone1, zone2, zone3]
+        map = Map()
+        assign_citizen_to_random_zone(c, zones, map)
+    """
     if zones:
         random_zone = random.choice(zones)
         assign_to_work_zone(c, random_zone, map)
@@ -545,10 +860,29 @@ def is_satisfaction_zone(SZone: TiledObject):
 
 
 def is_in_visited(road_tuple, visited):
+    """
+    Checks if a road with the given coordinates is in the visited set.
+
+    Args:
+        road_tuple (tuple): A tuple containing the x and y coordinates of the road.
+        visited (set): A set of visited roads.
+
+    Returns:
+        bool: True if the road is in the visited set, False otherwise.
+
+    Raises:
+        None
+
+    Examples:
+        road_tuple = (2, 3)
+        visited = {(1, 2), (3, 4), (2, 3)}
+        is_in_visited(road_tuple, visited)
+    """
     for road in visited:
         if road_tuple[0] == road.x and road_tuple[1] == road.y:
             return True
     return False
+
 
 
 def is_there_a_blocker_between(Frst: TiledObject, RZone: TiledObject, lst):
@@ -614,10 +948,27 @@ def has_random_years_passed_from_start(gameStart, givenDate: Timer) -> bool:
 
 
 def industrial_buildings_nearby(zone, map):
+    """
+    Finds industrial buildings near the given zone within a certain distance threshold.
+
+    Args:
+        zone (TiledObject): The zone object to check for nearby industrial buildings.
+        map (Map): The map object containing all the zones.
+
+    Returns:
+        list: A list of distances between the given zone and nearby industrial buildings.
+
+    Raises:
+        None
+
+    Examples:
+        zone = residential_zone
+        map = game_map
+        industrial_buildings_nearby(zone, map)
+    """
     distance_threshold = 5  # Minimum distance between residential and industrial zones
     industrial_buildings_nearby = []
     I_zones = map.get_industrial_zones()
-    distance = 0
     for I_zone in I_zones:
         distance = distance_between_two(zone, I_zone)
         if distance < distance_threshold:
@@ -679,8 +1030,27 @@ def calc_d(p1, p2) -> int:
     # return math.floor(distance)
 
 
-def tile_in_which_zone(coords, Zones) -> TiledObject:
-    for zone in Zones:
+def tile_in_which_zone(coords, zones):
+    """
+    Finds the zone object that contains the given coordinates.
+
+    Args:
+        coords (tuple): The coordinates (x, y) of the tile to check.
+        zones (list): A list of zone objects to search.
+
+    Returns:
+        TiledObject: The zone object that contains the given coordinates,
+            or None if no zone contains the coordinates.
+
+    Raises:
+        None
+
+    Examples:
+        coords = (4, 5)
+        zones = [zone1, zone2, zone3]
+        tile_in_which_zone(coords, zones)
+    """
+    for zone in zones:
         if coords in get_area(zone):
             return zone
     return None
@@ -692,6 +1062,25 @@ PathFinding , Handlers, Simulators
 
 
 def dfs(current_road, visited, road_list):
+    """
+    Performs a Depth-First Search (DFS) traversal on a road network.
+
+    Args:
+        current_road (Road): The current road to start the DFS traversal from.
+        visited (set): A set to store visited roads.
+        road_list (list): A list of all roads in the road network.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Examples:
+        visited = set()
+        road_list = [road1, road2, road3]
+        dfs(road1, visited, road_list)
+    """
     # Extract relevant attributes into a tuple
     road_tuple = (current_road.x, current_road.y)
     visited.add(current_road)
@@ -703,7 +1092,6 @@ def dfs(current_road, visited, road_list):
         # Extract relevant attributes into a tuple
         road_tuple = (road.x, road.y)
         if not is_in_visited(road_tuple, visited):
-            # print(f"Visiting road ({road.x}, {road.y})")
             dfs(road, visited, road_list)
 
 
@@ -744,24 +1132,13 @@ def upgrade_zone(zone: TiledObject, mapInstance):
     """
     Upgrades the clicked Zone (RZone/CZone/IZone)
     """
-    # def get_obj_by_id(id):
-    #    for obj in mapInstance.return_map().get_layer_by_name("ObjectsTop"):
-    #        if obj.id == id:
-    #            return obj
-    #    return None
-
     zone.properties['Level'] += 1
     zone.properties['Capacity'] = math.ceil(zone.properties['Capacity'] * 1.5)
     zone.properties['MaintenanceFee'] *= 0.25
     lst = get_linked_ids_for_obj(zone)
-    # to_delete = [i.id for i in lst]
     obj_layer = mapInstance.return_map().get_layer_by_name("ObjectsTop")
     for obj in lst:
         obj_layer.remove(obj)
-    # for i in to_delete:
-    #    o = get_obj_by_id(i)
-    #    if (o):
-    #        del(o)
     zone.properties['Buildings'] = []
     building = form_tiled_obj(zone, mapInstance)
     obj_layer.append(building)
@@ -989,3 +1366,228 @@ def handle_satisfaction_zone_addition(map, SZone: TiledObject):
                     if tmp <= 100:
                         c.satisfaction += (
                             SZone.properties['Satisfaction']*c.satisfaction)
+
+
+def randomize_initial_forests(map, player, timer):
+    """
+    Creates random forests at the start of the game
+    """
+    coords = [(11, 5), (28, 33), (6, 16), (32, 23)]
+    num_choices = random.randint(1, len(coords))
+    to_insert = random.sample(coords, num_choices)
+    for p in to_insert:
+        frst = Forest(p[0], p[1], timer.get_current_date_str(), map)
+        map.add_object(frst.instance, player, True)
+
+
+def resume_game(running, game_loop, run_call_back, allocated_tax):
+    """
+    Resumes a game.
+
+    This function is used to resume a game. It sets the `game_loop` variable to True
+    to indicate that the game loop should continue running. It then calls the
+    `run_call_back` function, passing the `running`, `False`, `False`, and
+    `allocated_tax` values to indicate that the game should be resumed with the
+    specified parameters.
+
+    Args:
+        running (bool): The running flag indicating whether the game loop should continue.
+        game_loop (bool): The game loop flag indicating whether the game loop is active.
+        run_call_back (function): The callback function to start the game.
+        allocated_tax (float): The allocated tax value for the game.
+
+    Returns:
+        None
+    """
+    print("========================== resume ==================================")
+    game_loop = True
+    run_call_back(running, False, False, allocated_tax)
+
+
+def save_game(running,map, game_loop, run_call_back, allocated_tax, list_of_tiled_objs, saved_game_speed, saved_speed_multiplier, saved_current_time_str):
+    """
+    Saves the game state.
+
+    This function is used to save the current game state. It collects relevant information
+    about the game, such as the state of citizens, tiled objects, timers, and object counts.
+    It then saves this information to a file using the pickle module.
+
+    Args:
+        running (bool): The running flag indicating whether the game loop should continue.
+        map: The map object representing the game map.
+        game_loop (bool): The game loop flag indicating whether the game loop is active.
+        run_call_back (function): The callback function to start the game.
+        allocated_tax (float): The allocated tax value for the game.
+        list_of_tiled_objs (list): A list of tiled objects in the game.
+        saved_game_speed (int): The saved game speed.
+        saved_speed_multiplier (int): The saved speed multiplier.
+        saved_current_time_str (str): The saved current time as a string.
+
+    Returns:
+        None
+    """
+    print("========================== save ==================================")
+    citizens = []
+    citizens_objs = Citizen.get_all_citizens()
+    for citizen_id, citizen in citizens_objs.items():
+        citizen_list = []
+        citizen_list.append(citizen_id)
+        if citizen.home:
+            citizen_list.append(citizen.home.id)
+        else:
+            citizen_list.append(-1)
+        if citizen.work:
+            citizen_list.append(citizen.work.id)
+        else:
+            citizen_list.append(-1)
+        citizen_list.append(citizen.satisfaction)
+        citizens.append(citizen_list)
+
+    parents = []
+    # update tiled_object list
+    for obj in list_of_tiled_objs:
+        obj['properties']['Citizens'] = []
+        parents.append(obj['parent'])
+        obj['parent'] = ""
+        if obj['type'][-4:] == 'Zone':
+            for building in obj['properties']['Buildings']:
+                building['parent'] = ""
+
+    my_timer = []
+    my_timer.append(saved_game_speed)
+    my_timer.append(saved_speed_multiplier)
+    my_timer.append(saved_current_time_str)
+    obj_count = map.get_object_count()
+    next_obj_count = map.get_next_obj_id()
+
+    # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
+    with open('game_state.pickle', 'wb') as f:
+        pickle.dump(citizens, f)
+        pickle.dump(list_of_tiled_objs, f)
+        pickle.dump(my_timer, f)
+        pickle.dump(obj_count, f)
+        pickle.dump(next_obj_count, f)
+
+    for i in range(len(list_of_tiled_objs)):
+        list_of_tiled_objs[i]['parent'] = parents[i]
+        if list_of_tiled_objs[i]['type'][-4:] == 'Zone':
+            for building in list_of_tiled_objs[i]['properties']['Buildings']:
+                building['parent'] = map.return_map()
+
+    game_loop = True
+    run_call_back(running, False, False, allocated_tax)
+
+
+def main_menu(running, game_loop, run_call_back, allocated_tax):
+    """
+    Displays the main menu.
+    """
+    print("========================== Main menu ==================================")
+    game_loop = False
+
+
+def allocate_tax(running, game_loop, run_call_back, allocated_tax):
+    """
+    Handles the tax allocation process in the game.
+
+    This function is used to handle the tax allocation process in the game.
+    It takes the running flag, game loop flag, callback function, and current tax allocation as parameters.
+
+    Args:
+        running (bool): The running flag indicating whether the game loop should continue.
+        game_loop (bool): The game loop flag indicating whether the game loop is active.
+        run_call_back (function): The callback function to start the game.
+        allocated_tax (float): The current allocated tax value for the game.
+
+    Returns:
+        None
+    """
+    print("========================== Tax allocation is runnint ==================================")
+    taskAllactor = TaskAllocator()
+    taskAllactor.run()
+    allocated_tax = float(taskAllactor.get_input_text())
+    run_call_back(running, False, False, allocated_tax)
+
+
+def show_menu(screen,map , running, game_loop, run_call_back, allocated_tax, list_of_tiled_objs, saved_game_speed, saved_speed_multiplier, saved_current_time_str):
+    """
+    Displays a menu screen to the player.
+
+    This function is used to display a menu screen to the player with various options.
+    It takes several parameters including the screen surface, game map, running flag, game loop flag,
+    callback function, current tax allocation, list of tiled objects, saved game speed, saved speed multiplier,
+    and saved current time.
+
+    Args:
+        screen (pygame.Surface): The screen surface to display the menu on.
+        map: The game map object.
+        running (bool): The running flag indicating whether the game loop should continue.
+        game_loop (bool): The game loop flag indicating whether the game loop is active.
+        run_call_back (function): The callback function to start or resume the game.
+        allocated_tax (float): The current allocated tax value for the game.
+        list_of_tiled_objs (list): The list of tiled objects in the game.
+        saved_game_speed (int): The saved game speed value.
+        saved_speed_multiplier (int): The saved speed multiplier value.
+        saved_current_time_str (str): The saved current time in string format.
+
+    Returns:
+        None
+    """
+    menu_height = 400
+    menu_width = 400
+    screen_width = 1024
+    screen_height = 768
+    menu_x = (screen_width - menu_width) // 2
+    menu_y = (screen_height - menu_height) // 2
+
+    menu_surface = pygame.Surface((menu_width, menu_height))
+    menu_surface.fill((200, 200, 200))
+    # Create the menu options
+    menu_options = [
+        ("Resume Game", resume_game),
+        ("Save Game", save_game),
+        ("Main menu", main_menu),
+        ("Allocate Tax", allocate_tax)
+    ]
+
+    # Add the menu options to the menu surface
+    font = pygame.font.SysFont("Calibri", 48, bold=True)
+    selected_option = 0
+    menu_loop = True
+    while menu_loop:
+        for i, (text, action) in enumerate(menu_options):
+            text_surface = font.render(text, True, (0, 0, 0))
+            text_rect = text_surface.get_rect(
+                center=(menu_width / 2, 75 + i * 75))
+            if i == selected_option:
+                pygame.draw.rect(menu_surface, (220, 220, 220), text_rect, 2)
+            else:
+                pygame.draw.rect(menu_surface, (180, 180, 180), text_rect, 2)
+            menu_surface.blit(text_surface, text_rect)
+
+        # Show the menu surface on the main surface
+        screen.blit(menu_surface, (menu_x, menu_y))
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return
+                elif event.key == pygame.K_UP:
+                    selected_option = max(0, selected_option - 1)
+                elif event.key == pygame.K_DOWN:
+                    selected_option = min(
+                        len(menu_options) - 1, selected_option + 1)
+                elif event.key == pygame.K_RETURN:
+                    selected = menu_options[selected_option][0]
+                    action = menu_options[selected_option][1]
+                    if (selected == "Save Game"):
+                        game_loop = action(running,map, game_loop, run_call_back, allocated_tax, list_of_tiled_objs,
+                                           saved_game_speed, saved_speed_multiplier, saved_current_time_str)
+                    else:
+                        game_loop = action(running, game_loop,
+                                        run_call_back, allocated_tax)
+                    menu_loop = False
