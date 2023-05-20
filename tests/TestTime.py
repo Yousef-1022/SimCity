@@ -1,3 +1,4 @@
+import os
 import pygame
 import unittest
 from models.Utils import *
@@ -5,6 +6,8 @@ from models.Map import Map
 from models.Panels.BuilderPanel import BuilderPanel
 from models.Panels.DescriptionPanel import DescriptionPanel
 from models.zones.ResidentialZone import ResidentialZone
+
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 class TestTime(unittest.TestCase):
 
