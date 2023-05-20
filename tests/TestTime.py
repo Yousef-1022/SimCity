@@ -6,9 +6,9 @@ from models.Panels.BuilderPanel import BuilderPanel
 from models.Panels.DescriptionPanel import DescriptionPanel
 from models.zones.ResidentialZone import ResidentialZone
 
-
 class TestTime(unittest.TestCase):
 
+    @unittest.skipIf(pygame.get_init() is None, "Skipping test due to non-graphical environment")
     def test_has_year_passed_from_creation(self):
         SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 768
         SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -23,6 +23,7 @@ class TestTime(unittest.TestCase):
         TiledObj = (ResidentialZone(x, y, timer.get_current_date_str(), map)).instance
         self.assertFalse(has_year_passed_from_creation(TiledObj, timer))
 
+    @unittest.skipIf(pygame.get_init() is None, "Skipping test due to non-graphical environment")
     def test_has_month_passed_from_creation(self):
         game_speed = 1
         timer = Timer(game_speed, 700)
@@ -39,6 +40,7 @@ class TestTime(unittest.TestCase):
 
         self.assertFalse(has_month_passed_from_creation(TiledObj, timer))
 
+    @unittest.skipIf(pygame.get_init() is None, "Skipping test due to non-graphical environment")
     def test_has_quarter_passed_from_creation(self):
         game_speed = 1
         timer = Timer(game_speed, 700)
