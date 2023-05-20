@@ -1,6 +1,7 @@
 import pygame
 import main
 import pickle
+from models.TaxAllocator import TaskAllocator
 
 class MenuClass:
     def __init__(self):
@@ -217,5 +218,9 @@ class MenuClass:
             if self.start_game:
                 self.start_menu = True
                 self.start_game = False
-                main.run(self.running, self.loaded_game, self.flag)
-
+                allocated_tax = 0.5 # should be loaded!!
+                if not self.loaded_game:
+                    taskAllactor = TaskAllocator()
+                    taskAllactor.run()
+                    allocated_tax = float(taskAllactor.get_input_text())
+                main.run(self.running, self.loaded_game, self.flag, allocated_tax)

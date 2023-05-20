@@ -5,6 +5,7 @@ from models.BuildingAdder import *
 from models.Panels.BuilderPanel import BuilderPanel
 from models.Panels.DescriptionPanel import DescriptionPanel
 from models.Panels.PricePanel import PricePanel
+from models.TaxAllocator import TaskAllocator
 from models.zones.ResidentialZone import ResidentialZone
 from models.zones.IndustrialZone import IndustrialZone
 from models.zones.ServiceZone import ServiceZone
@@ -27,7 +28,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 768
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 SCROLL_SPEED = 5
 MONEY_PER_DAY = 20
-TAX_VARIABLE = 0.05
+allocated_tax = 0.05
 
 # Map & Panels
 description_panel = DescriptionPanel(0,0, SCREEN.get_width(), 32)
@@ -38,42 +39,6 @@ icons = [get_icon_and_type(f,icons_dir) for f in get_files_from_dir(icons_dir)]
 map = Map(SCREEN, builder_panel.getWidth(), description_panel.getHeight())
 global class_tobuild
 game_loop = True
-
-
-def show_menu(screen, running, game_loop):
-    menu_height = 400
-    menu_width = 400
-    screen_width = 1024
-    screen_height = 768
-    menu_x = (screen_width - menu_width) // 2
-    menu_y = (screen_height - menu_height) // 2
-
-    menu_surface = pygame.Surface((menu_width, menu_height))
-    menu_surface.fill((200, 200, 200))
-    # Create the menu options
-    menu_options = [
-        ("Resume Game", resume_game),
-        ("Save Game", save_game),
-        ("Main menu", main_menu)
-    ]
-
-    # Add the menu options to the menu surface
-    font = pygame.font.SysFont("Calibri", 48, bold=True)
-    selected_option = 0
-    menu_loop = True
-    while menu_loop:
-        for i, (text, action) in enumerate(menu_options):
-            text_surface = font.render(text, True, (0, 0, 0))
-            text_rect = text_surface.get_rect(center=(menu_width / 2, 75 + i * 75))
-            if i == selected_option:
-                pygame.draw.rect(menu_surface, (220, 220, 220), text_rect, 2)
-            else:
-                pygame.draw.rect(menu_surface, (180, 180, 180), text_rect, 2)
-            menu_surface.blit(text_surface, text_rect)
-
-        # Show the menu surface on the main surface
-        screen.blit(menu_surface, (menu_x, menu_y))
-        pygame.display.update()
 
 # Game simulation variables
 player = Player("HUMAN", 100000)
@@ -89,7 +54,7 @@ Grid = GridSystem(map)
 def resume_game(running, game_loop):
     print("========================== resume ==================================")
     game_loop = True
-    run(running, False, False)
+    run(running, False, False, allocated_tax)
 
 def save_game(running, game_loop):
     print("========================== save ==================================")
@@ -141,12 +106,19 @@ def save_game(running, game_loop):
                 building['parent'] = map.return_map()
 
     game_loop = True
-    run(running, False, False)
+    run(running, False, False, allocated_tax)
 
 def main_menu(running, game_loop):
     print("========================== Main menu ==================================")
     game_loop= False
     # return game_loop
+
+def allocate_tax (running, game_loop):
+    print("========================== Tax allocation is runnint ==================================")
+    taskAllactor = TaskAllocator()
+    taskAllactor.run()
+    allocated_tax = float(taskAllactor.get_input_text()) 
+    run(running, False, False, allocated_tax)
 
 def show_menu(screen, running, game_loop):
     menu_height = 400
@@ -162,7 +134,8 @@ def show_menu(screen, running, game_loop):
     menu_options = [
         ("Resume Game", resume_game),
         ("Save Game", save_game),
-        ("Main menu", main_menu)
+        ("Main menu", main_menu),
+        ("Allocate Tax", allocate_tax)
     ]
 
     # Add the menu options to the menu surface
@@ -210,11 +183,11 @@ def randomize_initial_forests():
         frst = Forest(p[0],p[1],timer.get_current_date_str(),map)
         map.add_object(frst.instance,player,True)  
     
-def run(running, loaded_game, flag):
+def run(running, loaded_game, flag, tax):
+    allocated_tax = tax
     normal_cursor = True
     cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer",icons))
     cursorImgRect = cursorImg.get_rect()
-    TAX_VARIABLE = 0.05
     game_speed  = 1
     global game_loop
     class_tobuild = ""
@@ -305,7 +278,7 @@ def run(running, loaded_game, flag):
         cursorImgRect.center = pygame.mouse.get_pos()
         map.display()
 
-        description_panel.display(SCREEN,24,(10,10),(128,128,128),f"Funds: ${player.money} , Citizens: {get_total_citizens()}",(0,0,0))
+        description_panel.display(SCREEN,24,(10,10),(128,128,128),f"Funds: ${player.money}        Citizens: {get_total_citizens()}      Tax: {allocated_tax}",(0,0,0))
         description_panel.displayTime(SCREEN,f"Time: {timer.get_current_date_str()}",(400,10))
         description_panel.display_game_speed(SCREEN, timer, game_speed_multiplier)
         price_panel.display(SCREEN,24,(102, SCREEN.get_height() - 20),(128,128,128),f'${(held_price)} for {class_tobuild}',(0,0,0))
@@ -370,7 +343,7 @@ def run(running, loaded_game, flag):
                         obj.properties['Revenue'] += (MONEY_PER_DAY * total_citizens)
                     # Get revenue (TAX) from WorkZone to Player
                     elif(obj.type != "ResidentialZone" and did_a_year_pass):
-                        revenue = obj.properties['Revenue'] * TAX_VARIABLE
+                        revenue = obj.properties['Revenue'] * allocated_tax
                         player.money += revenue
                         obj.properties['Revenue'] = 0
             day = timer.get_current_time().day
