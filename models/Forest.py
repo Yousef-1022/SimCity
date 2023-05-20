@@ -1,15 +1,16 @@
 import xml.etree.ElementTree as ET
 from pytmx import TiledObject
 
+
 class Forest:
     """
     Forests by default start with a 0.1 Bonus value. (SatIncrease) 
     Each year, it increases by 0.03 . Once the Forest is Mature (10 Years) , Maintenance fees can be taken
     """
     price = 500
-    
-    def __init__(self,x,y,creationTime,mapInstance):
-        self.x = x 
+
+    def __init__(self, x, y, creationTime, mapInstance):
+        self.x = x
         self.y = y
         self.price = Forest.price
         self.creationTime = creationTime
@@ -31,6 +32,6 @@ class Forest:
                     <property name="Radius" type="int" value="3"/> \
                 </properties> \
             </object>')
-        obj = TiledObject(mapInstance.return_map(),xml)
-        obj.gid=placeholder.gid
+        obj = TiledObject(mapInstance.return_map(), xml)
+        obj.gid = placeholder.gid
         self.instance = obj

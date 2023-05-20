@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from pytmx import TiledObject
 
+
 class Disaster:
     """
     A disaster which can occur randomly or by the player request
@@ -8,9 +9,9 @@ class Disaster:
     linked_objs are the objects which contain the affected zones
     """
     price = 0
-    
-    def __init__(self,x,y,creationTime,mapInstance):
-        self.x = x 
+
+    def __init__(self, x, y, creationTime, mapInstance):
+        self.x = x
         self.y = y
         self.creationTime = creationTime
         placeholder = mapInstance.get_static_object_by_type("Disaster")
@@ -24,7 +25,7 @@ class Disaster:
                 <property name="linked_objs" value=""/> \
             </properties> \
         </object>')
-        obj = TiledObject(mapInstance.return_map(),xml)
+        obj = TiledObject(mapInstance.return_map(), xml)
         obj.properties['linked_objs'] = []
-        obj.gid=placeholder.gid
+        obj.gid = placeholder.gid
         self.instance = obj

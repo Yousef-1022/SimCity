@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from pytmx import TiledObject
 
+
 class Stadium:
     """
     Stadium has 6 tiles radius of satisfaction increase
@@ -8,8 +9,8 @@ class Stadium:
     """
     price = 600
 
-    def __init__(self,x,y,creationTime,mapInstance):
-        self.x = x 
+    def __init__(self, x, y, creationTime, mapInstance):
+        self.x = x
         self.y = y
         self.price = Stadium.price
         self.creationTime = creationTime
@@ -32,7 +33,7 @@ class Stadium:
                     <property name="Satisfaction" type="float" value="0.20"/> \
                 </properties> \
             </object>')
-        obj = TiledObject(mapInstance.return_map(),xml)
-        obj.gid=placeholder.gid
+        obj = TiledObject(mapInstance.return_map(), xml)
+        obj.gid = placeholder.gid
         obj.properties['Citizens'] = []
         self.instance = obj
