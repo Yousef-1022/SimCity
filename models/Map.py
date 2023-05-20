@@ -172,7 +172,8 @@ class Map:
                         R_zone = zone
                 if R_zone and len(connected_objects) <= 1 or not R_zone:
                     obj_layer.remove(obj)
-                    self.__objcount -= 1
+                    self.__objcount-=1
+                    del (obj)
                 break
 
     def get_all_roads(self) -> list:
@@ -468,127 +469,157 @@ class Map:
         """
         objLayer = self.__map.get_layer_by_name("ObjectsTop")
         objLayer.append(building)
-
-    def draw_prompt(self, pos, zone):
+        
+    def create_button(self, font, text, text_padding, prompt_x, prompt_y, prompt_width, prompt_height,
+    button_width, button_height, p_m=1, b_m=2):
         """
-        Draws a prompt on the screen when clicking with the right mouse button
+        Function used to create a clickable button
+        
+        Args:
+        font: pygame.font.Font
+        text: String to be on button
+        text_padding: int showing the padding required for the text
+        prompt_x: mouse_x - prompt_width // 2 value
+        prompt_y: mouse_y - prompt_height // 2
+        prompt_width: int showing pixel size of prompt width
+        prompt_height: int showing pixel size of prompt height
+        p_m: optional padding multipler to move button location
+        b_m: optional button multipler to move button location
         
         Returns:
-        a button (rectangle) which can be used to be clicked
+        a button (rectangle)
         """
-        mouse_x, mouse_y = pos[0], pos[1]
-        prompt_width, prompt_height = 180, 180
-        prompt_x = mouse_x - prompt_width // 2
-        prompt_y = mouse_y - prompt_height // 2
-        pygame.draw.rect(self.__screen, (220, 220, 220),
-                         (prompt_x, prompt_y, prompt_width, prompt_height))
-        pygame.draw.rect(self.__screen, (150, 150, 150),
-                         (prompt_x, prompt_y, prompt_width, prompt_height), 2)
-        font = pygame.font.Font(None, 24)
-        line_height = font.get_linesize()
-        text_padding = 10
-
-        amount_citizens = len(zone.properties['Citizens'])
-        amount_buildings = len(zone.properties['Buildings'])
-        can_classify = False
-        can_upgrade = False
-
-        if amount_citizens == 0 and amount_buildings == 0:
-            sat = 0.0
-            can_classify = True
-        else:
-            sat = (sum(
-                c.satisfaction for c in zone.properties['Citizens']) / amount_citizens) if amount_citizens != 0 else 0.0
-            sat = '{:.2f}'.format(round(sat, 2))
-            can_upgrade = True
-
-        lines = [
-            f"Saturation: {amount_citizens}",
-            f"Satisfaction: {sat}",
-            f"Capacity: {zone.properties['Capacity']}",
-            f"Level: {zone.properties['Level']}"
-        ]
-
-        for i, line in enumerate(lines):
-            text = font.render(line, True, (0, 0, 0))
-            text_rect = text.get_rect(center=(
-                prompt_x + prompt_width // 2, prompt_y + line_height * (i + 1) + text_padding))
-            self.__screen.blit(text, text_rect)
-
-        res = None
-
-        if can_upgrade and zone.properties['Level'] < 3 and amount_citizens > 0:
-            button_width, button_height = 150, 30
-            button_x = prompt_x + (prompt_width - button_width) // 2
-            button_y = prompt_y + prompt_height + text_padding - button_height*2
-            button = pygame.draw.rect(
-                self.__screen, (100, 100, 100), (button_x, button_y, button_width, button_height))
-            button_text = font.render("Upgrade", True, (255, 255, 255))
-            button_text_rect = button_text.get_rect(
-                center=(button_x + button_width // 2, button_y + button_height // 2))
-            self.__screen.blit(button_text, button_text_rect)
-            res = button
-
-        elif can_classify:
-            button_width, button_height = 150, 30
-            button_x = prompt_x + (prompt_width - button_width) // 2
-            button_y = prompt_y + prompt_height + text_padding - button_height*2
-            button = pygame.draw.rect(
-                self.__screen, (100, 100, 100), (button_x, button_y, button_width, button_height))
-            button_text = font.render("Reclassify", True, (255, 255, 255))
-            button_text_rect = button_text.get_rect(
-                center=(button_x + button_width // 2, button_y + button_height // 2))
-            self.__screen.blit(button_text, button_text_rect)
-            res = button
-
-        return res
-
-    def draw_prompt_to_delete(self, pos, zone):
-        """
-        Draws a prompt on the screen when clicking with the right mouse button
-        Used to delete PoliceDepartment or Stadium
-        
-        Returns:
-        a button (rectangle) which can be used to be clicked to delete the zone
-        """
-        mouse_x, mouse_y = pos[0], pos[1]
-        prompt_width, prompt_height = 180, 180
-        prompt_x = mouse_x - prompt_width // 2
-        prompt_y = mouse_y - prompt_height // 2
-        pygame.draw.rect(self.__screen, (220, 220, 220),
-                         (prompt_x, prompt_y, prompt_width, prompt_height))
-        pygame.draw.rect(self.__screen, (150, 150, 150),
-                         (prompt_x, prompt_y, prompt_width, prompt_height), 2)
-        font = pygame.font.Font(None, 24)
-        line_height = font.get_linesize()
-        text_padding = 10
-
-        lines = [
-            f"Cost: {zone.properties['Price']}",
-            f"MaintenanceFee: {zone.properties['MaintenanceFee']}",
-            f"Date: {zone.properties['CreationDate']}",
-            f"Radius: {zone.properties['Radius']} tiles",
-            f"SatAdd: {zone.properties['Satisfaction'] * 100}% ",
-        ]
-
-        for i, line in enumerate(lines):
-            text = font.render(line, True, (0, 0, 0))
-            text_rect = text.get_rect(center=(
-                prompt_x + prompt_width // 2, prompt_y + line_height * (i + 1) + text_padding))
-            self.__screen.blit(text, text_rect)
-
-        button_width, button_height = 150, 30
         button_x = prompt_x + (prompt_width - button_width) // 2
-        button_y = prompt_y + prompt_height + text_padding - button_height*2
-        button = pygame.draw.rect(
-            self.__screen, (100, 100, 100), (button_x, button_y, button_width, button_height))
-        button_text = font.render("Remove", True, (255, 255, 255))
-        button_text_rect = button_text.get_rect(
-            center=(button_x + button_width // 2, button_y + button_height // 2))
+        button_y = prompt_y + prompt_height + text_padding * p_m - button_height * b_m
+        button = pygame.draw.rect(self.__screen, (100, 100, 100), (button_x, button_y, button_width, button_height))
+        button_text = font.render(text, True, (255, 255, 255))
+        button_text_rect = button_text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
         self.__screen.blit(button_text, button_text_rect)
         return button
+    
+    def draw_prompt(self, pos, zone) -> list:
+        """
+        Draws a prompt on the screen when clicking with the right mouse button
+        
+        Args:
+        pos: mouse_pos
+        zone: Zone TiledObject
+        
+        Returns:
+        List of two buttons (rectangle) which can be used to be clicked on for either upgrade or demolish/remove
+        """
+        mouse_x, mouse_y = pos[0], pos[1]
+        prompt_width, prompt_height = 180, 180
+        prompt_x = mouse_x - prompt_width // 2
+        prompt_y = mouse_y - prompt_height // 2
+        pygame.draw.rect(self.__screen, (220, 220, 220),
+                         (prompt_x, prompt_y, prompt_width, prompt_height))
+        pygame.draw.rect(self.__screen, (150, 150, 150),
+                         (prompt_x, prompt_y, prompt_width, prompt_height), 2)
+        font = pygame.font.Font(None, 24)
+        line_height = font.get_linesize()
+        text_padding = 10
+        
+        can_classify = False
+        can_upgrade = False
+        
+        if zone.type[-4:] == 'Zone':    
+            amount_citizens = len(zone.properties['Citizens'])
+            amount_buildings = len(zone.properties['Buildings'])
 
-    def reclassify_zone(self, obj):
+            if amount_citizens == 0 and amount_buildings == 0:
+                sat = 0.0
+                can_classify = True
+            else:
+                sat = (sum(c.satisfaction for c in zone.properties['Citizens']) / amount_citizens) if amount_citizens != 0 else 0.0
+                sat = '{:.2f}'.format(round(sat, 2))
+                can_upgrade = True
+
+            lines = [
+                f"Saturation: {amount_citizens}",
+                f"Satisfaction: {sat}",
+                f"Capacity: {zone.properties['Capacity']}",
+                f"Level: {zone.properties['Level']}"
+            ]
+        else:
+            lines = [
+                f"Cost: {zone.properties['Price']}",
+                f"MaintenanceFee: {zone.properties['MaintenanceFee']}",
+                f"Date: {zone.properties['CreationDate']}",
+                f"Radius: {zone.properties['Radius']} tiles",
+                f"SatAdd: {zone.properties['Satisfaction'] * 100}% ",
+            ]
+            
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (0, 0, 0))
+            text_rect = text.get_rect(center=(
+                prompt_x + prompt_width // 2, prompt_y + line_height * (i + 1) + text_padding))
+            self.__screen.blit(text, text_rect)
+
+        res = []
+        
+        if zone.type[-4:] != 'Zone':
+            remove_btn = self.create_button(font,"Remove",text_padding,prompt_x,prompt_y,prompt_width,prompt_height,150,30)
+            res.append(remove_btn)
+            
+        elif can_upgrade and zone.properties['Level'] < 3 and amount_citizens > 0:
+            upgrade_btn = self.create_button(font,"Upgrade",text_padding,prompt_x,prompt_y,prompt_width,prompt_height,150,30,1,3)
+            res.append(upgrade_btn)
+            demolish_btn = self.create_button(font,"Demolish",text_padding,prompt_x,prompt_y,prompt_width,prompt_height,150,30,2)
+            res.append(demolish_btn)
+
+        elif can_classify:
+            classfy_btn = self.create_button(font,"Reclassify",text_padding,prompt_x,prompt_y,prompt_width,prompt_height,150,30)
+            res.append(classfy_btn)
+        
+        else:
+            demolish_btn = self.create_button(font,"Demolish",text_padding,prompt_x,prompt_y,prompt_width,prompt_height,150,30)
+            res.append(demolish_btn)
+            
+        return res
+        
+    def does_obj_exist(self,object) -> bool:
+        """
+        Checks if the given object on the object layer exists
+        """
+        if (object in self.get_all_objects()):
+            return True
+        return False
+    
+    def draw_confirm_prompt_to_demolish(self,pos,zone):
+        """
+        Draws a prompt on the screen after clicking on the demolish button
+        Used to demolish a Zone
+        
+        Returns:
+        a button (rectangle) which can be used to be clicked to demolish the zone
+        """
+        mouse_x, mouse_y = pos[0], pos[1]
+        prompt_width, prompt_height = 150, 150
+        prompt_x = mouse_x - prompt_width // 2
+        prompt_y = mouse_y - prompt_height // 2
+        pygame.draw.rect(self.__screen, (220, 220, 220),
+                         (prompt_x, prompt_y, prompt_width, prompt_height))
+        pygame.draw.rect(self.__screen, (150, 150, 150),
+                         (prompt_x, prompt_y, prompt_width, prompt_height), 2)
+        font = pygame.font.Font(None, 24)
+        line_height = font.get_linesize()
+        text_padding = 10
+        lines = [
+            f"{zone.name}",
+            f"Citizens: {len(zone.properties['Citizens'])}",
+            f"{zone.properties['CreationDate']}",
+            f"Are you sure?",
+        ]
+        for i, line in enumerate(lines):
+            text = font.render(line, True, (0, 0, 0))
+            text_rect = text.get_rect(center=(prompt_x + prompt_width // 2, prompt_y + line_height * (i + 1) + text_padding))
+            self.__screen.blit(text, text_rect) 
+        
+        btn = self.create_button(font,"Demolish!",text_padding,prompt_x,prompt_y,prompt_width,prompt_height,100,30)
+        return btn  
+    
+    def reclassify_zone(self,obj):
         """
         Reclassifies the zone if it does not have any citizens
         
@@ -614,7 +645,8 @@ class Map:
                 obj_layer = self.__map.get_layer_by_name("Objects")
                 if (obj in obj_layer):
                     obj_layer.remove(obj)
-                    self.__objcount -= 1
+                    self.__objcount-=1
+            del (obj)
         except Exception as e:
             print(f"Fatal error to reclassify {obj}. Error: {e}")
 
@@ -629,7 +661,18 @@ class Map:
         """
         obj_layer = self.__map.get_layer_by_name("ObjectsTop")
         obj_layer.remove(db)
-
+        del (db)
+    
+    def get_yet_to_occupy_homes(self) -> list:
+        """
+        Function used to get the ResidentialZones which have free capacity to add a Citizen into
+        
+        Returns:
+        list of ResidentialZones with citizens less than its capacity
+        """
+        return [RZone for RZone in self.get_residential_zones() if
+                  len(RZone.properties['Citizens']) < RZone.properties['Capacity']]
+        
     def get_service_zones(self):
         """
         Get service zones

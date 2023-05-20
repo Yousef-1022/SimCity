@@ -136,10 +136,14 @@ def run(running, loaded_game, flag, tax):
         randomize_initial_forests(map, player, timer)
     game_loop = True
 
+
     clicked_cords = None
     clicked_zone = None
     upgrade = None
     reclassify = None
+    demolish = None
+    demolish_confirm = None
+    
     held_price = 0
     class_tobuild = "Nothing"
     randomizer_for_disaster = False
@@ -205,7 +209,7 @@ def run(running, loaded_game, flag, tax):
                         else:
                             obj.properties['Year'] += 1
                             obj.properties['Satisfaction'] += 0.03
-                            handle_tree_growth(obj)
+                            handle_tree_growth(map,obj)
                             if obj.properties['Year'] == 10:
                                 obj.properties['Mature'] = True
                 # Handle Zones Expense
@@ -234,7 +238,7 @@ def run(running, loaded_game, flag, tax):
 
             if pygame.mouse.get_pressed()[2]:
                 normal_cursor = True
-                clicked_zone = upgrade = reclassify = None
+                clicked_zone = upgrade = reclassify = demolish = None
                 clicked_cords = mouse_pos
                 class_tobuild = "Nothing"
                 held_price = 0
@@ -243,16 +247,29 @@ def run(running, loaded_game, flag, tax):
                 if reclassify:
                     if reclassify.collidepoint(mouse_pos):
                         map.reclassify_zone(clicked_zone)
-                        player.money += (
-                            float(clicked_zone.properties["Price"])*0.5)
-                        clicked_cords = clicked_zone = upgrade = reclassify = None
+                        player.money += (float(clicked_zone.properties["Price"])*0.5)
+                    clicked_cords = clicked_zone = upgrade = reclassify = demolish = demolish_confirm = None
                 if upgrade:
                     if upgrade.collidepoint(mouse_pos):
-                        upgrade_zone(clicked_zone, map)
-                        player.money -= ((float(clicked_zone.properties["Price"])*0.5) * (
-                            clicked_zone.properties["Level"]+0.25))
-                clicked_cords = clicked_zone = upgrade = reclassify = None
-
+                        upgrade_zone(clicked_zone,map)
+                        player.money -= ((float(clicked_zone.properties["Price"])*0.5) * (clicked_zone.properties["Level"]+0.25))
+                        clicked_cords = clicked_zone = upgrade = reclassify = demolish = demolish_confirm = None
+                    elif demolish.collidepoint(mouse_pos):
+                        demolish_confirm = map.draw_confirm_prompt_to_demolish(mouse_pos,clicked_zone)
+                        upgrade = reclassify = demolish = None
+                    else:
+                        clicked_cords = clicked_zone = upgrade = reclassify = demolish = demolish_confirm = None
+                if demolish:
+                    if demolish.collidepoint(mouse_pos):
+                        demolish_confirm = map.draw_confirm_prompt_to_demolish(mouse_pos,clicked_zone)
+                        upgrade = reclassify = demolish = None
+                    else:
+                        clicked_cords = clicked_zone = upgrade = reclassify = demolish = demolish_confirm = None
+                if demolish_confirm:
+                    if demolish_confirm.collidepoint(mouse_pos):
+                        demolish_zone(clicked_zone,map,player)
+                        clicked_cords = clicked_zone = upgrade = reclassify = demolish = demolish_confirm = None
+                        
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -319,18 +336,17 @@ def run(running, loaded_game, flag, tax):
                     else:
                         held_price = 0
             elif event.type == pygame.KEYDOWN:  # Scroll handling
-                clicked_cords = clicked_zone = upgrade = reclassify = None
+                clicked_cords = clicked_zone = upgrade = reclassify = demolish = demolish_confirm = None
                 map.handle_scroll(event.key)
 
         if not normal_cursor:
-            clicked_cords = clicked_zone = upgrade = reclassify = None
+            clicked_cords = clicked_zone = upgrade = reclassify = demolish = demolish_confirm = None
             SCREEN.blit(cursorImg, cursorImgRect)
+        
+        clicked_cords,clicked_zone,upgrade,reclassify,demolish,demolish_confirm = handle_prompt(map,clicked_cords,clicked_zone,upgrade,reclassify,demolish,demolish_confirm)
+        handle_disaster_logic(map,timer)
+        handle_disaster_random_logic(map,timer.get_current_date_str(),randomizer_for_disaster)
 
-        clicked_cords, clicked_zone, upgrade, reclassify = handle_prompt(
-            map, clicked_cords, clicked_zone, upgrade, reclassify)
-        handle_disaster_logic(map, timer)
-        handle_disaster_random_logic(
-            map, timer.get_current_date_str(), randomizer_for_disaster)
 
         # Limit the frame rate to 60 FPS
         timer.update_time(paused)

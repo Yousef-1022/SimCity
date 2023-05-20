@@ -1,8 +1,9 @@
 import os
-import pickle
-import random
 import sys
+import random
+import math
 import pygame
+import pickle
 from pytmx import TiledObject
 from models.Forest import Forest
 from models.TaxAllocator import TaskAllocator
@@ -10,7 +11,6 @@ from models.Timer import Timer
 from models.BuildingAdder import form_tiled_obj
 from models.Citizen import *
 from models.Disaster import Disaster
-import math
 
 """
 Getters
@@ -450,7 +450,6 @@ def get_all_neighboring_objects(roads, map):
     return neighboring_objects
 
 
-
 def get_neighboring_object(road, map):
     """
     Returns the neighboring object connected to the given road.
@@ -512,7 +511,6 @@ def get_all_neighboring_object(road, map):
             if int(tup[0]) == x and int(tup[1]) == y:
                 return object
     return None
-
 
 
 def get_num_of_unemployed_in_zone(zone):
@@ -884,7 +882,6 @@ def is_in_visited(road_tuple, visited):
     return False
 
 
-
 def is_there_a_blocker_between(Frst: TiledObject, RZone: TiledObject, lst):
     """
     Get the points which represent the view of the RZone and the Forest,
@@ -907,6 +904,15 @@ def is_there_a_blocker_between(Frst: TiledObject, RZone: TiledObject, lst):
             s2 = set(flattened_res)
             if s1.intersection(s2):
                 return True
+    return False
+
+
+def can_move_into(zone: TiledObject) -> bool:
+    """
+    Checks if a Citizen can move into the Zone
+    """
+    if len(zone.properties['Citizens']) < zone.properties['Capacity']:
+        return True
     return False
 
 
@@ -1139,10 +1145,76 @@ def upgrade_zone(zone: TiledObject, mapInstance):
     obj_layer = mapInstance.return_map().get_layer_by_name("ObjectsTop")
     for obj in lst:
         obj_layer.remove(obj)
+        del (obj)
     zone.properties['Buildings'] = []
     building = form_tiled_obj(zone, mapInstance)
     obj_layer.append(building)
     zone.properties['Buildings'].append(building.__dict__)
+
+
+def delete_zone_data(zone: TiledObject, mapInstance) -> list:
+    """
+    Function to destory the data of the Zone and the Zone itself
+
+    Modifies Citizens data accordingly
+
+    Args:
+    zone: Zone to destory
+    mapInstance: Map class
+
+    Returns:
+    list of Citizens who were removed from the Zone
+    """
+    if zone.type[-4:] != 'Zone':
+        return []
+    citizens = []
+    for c in zone.properties['Citizens']:
+        citizens.append(c)
+    for c in citizens:
+        remove_citizen_from_zone(zone, c)
+        if (zone.type == 'ResidentialZone'):
+            c.home = None
+        elif (zone.type == 'IndustrialZone' or zone.type == 'ServiceZone'):
+            c.work = None
+    buildings = get_linked_ids_for_obj(zone)
+    for b in buildings:
+        mapInstance.remove_disaster_or_building(b)
+    mapInstance.reclassify_zone(zone)
+    return citizens
+
+
+def demolish_zone(zone: TiledObject, mapInstance, player):
+    """
+    Demolishes the clicked Zone (RZone/CZone/IZone)
+    """
+    if (zone.type == 'ResidentialZone'):
+        citizens = delete_zone_data(zone, mapInstance)
+        homeless = len(citizens)
+        for c in citizens:
+            if (c.work):
+                remove_citizen_from_zone(c.work, c)
+                c.work = None
+        # Give home
+        for c in citizens:
+            RZones = mapInstance.get_yet_to_occupy_homes()
+            if (len(RZones) == 0):
+                break
+            random.shuffle(RZones)
+            for RZone in RZones:
+                if can_move_into(RZone):
+                    if (assign_to_residential_zone(c, RZone, mapInstance)):
+                        player.money -= 100
+                        homeless -= 1
+                    break
+        if (homeless != 0):
+            to_leave = citizens[-homeless:]
+            for c in to_leave:
+                player.money -= 150
+                delete_citizen(c)
+    elif (zone.type == 'IndustrialZone' or zone.type == 'ServiceZone'):
+        citizens = delete_zone_data(zone, mapInstance)
+        for c in citizens:
+            player.money -= 100
 
 
 def handle_citizen_addition_satisfaction(c: Citizen, map):
@@ -1252,7 +1324,7 @@ def handle_disaster_random_logic(mapInstance, givenDate, randomizer: bool):
             mapInstance.add_disaster_to_map(obj)
 
 
-def handle_prompt_logic(map, clckd_crds, clckd_zn, upgrd, rclssfy):
+def handle_prompt_logic(map, clckd_crds, clckd_zn, upgrd, rclssfy, dmlsh):
     """
     Prompt handling internal logic
 
@@ -1263,40 +1335,49 @@ def handle_prompt_logic(map, clckd_crds, clckd_zn, upgrd, rclssfy):
     clckd_crds: mouse pos
     clcked_zn: Clicked TiledObject
     upgrd: pygame rect
-    rclssfy: pygame rect
+    rclssfy: pygame rect, used to reclassify a Zone, also to delete PoliceDepartment,Stadium
+    dmlsh: pygame rect
 
     Returns:
     All given parameters except for map as a tuple
     """
     # Handle deletion of PoliceDepartment or Stadium
     if (clckd_zn.type == "PoliceDepartment" or clckd_zn.type == "Stadium"):
-        upgrd = None
-        rclssfy = map.draw_prompt_to_delete(clckd_crds, clckd_zn)
+        upgrd = dmlsh = None
+        rclssfy = map.draw_prompt(clckd_crds, clckd_zn)[0]
     else:
         # Handle already clicked Zone (RZone,CZone,IZone)
-        upgrd = rclssfy = None
-        if (clckd_zn.properties['Level'] <= 3 and clckd_zn.type[-4:] == 'Zone'):
-            btn = map.draw_prompt(clckd_crds, clckd_zn)
+        upgrd = rclssfy = dmlsh = None
+        if (clckd_zn.properties['Level'] < 3 and clckd_zn.type[-4:] == 'Zone'):
             amount_citizens = len(clckd_zn.properties['Citizens'])
             amount_buildings = len(clckd_zn.properties['Buildings'])
-            if (amount_citizens == 0 and amount_buildings == 0):
-                upgrd = None
-                rclssfy = btn
+            if (amount_citizens == 0):
+                # Reclassify
+                btns = map.draw_prompt(clckd_crds, clckd_zn)
+                if amount_buildings == 0:
+                    rclssfy = btns[0]
+                    upgrd = dmlsh = None
+                # Destroy
+                elif amount_buildings <= 4 and amount_buildings > 0:
+                    dmlsh = btns[0]
+                    upgrd = rclssfy = None
             elif (amount_citizens >= 1):
-                if (clckd_zn.type == 'ResidentialZone' and (amount_buildings <= 4 and amount_buildings > 0)):
-                    upgrd = btn
-                    rclssfy = None
-                elif (clckd_zn.type == 'IndustrialZone' or clckd_zn.type == 'ServiceZone'):
-                    upgrd = btn
-                    rclssfy = None
+                # Upgrade and Demolish
+                btns = map.draw_prompt(clckd_crds, clckd_zn)
+                upgrd = btns[0]
+                dmlsh = btns[1]
+                rclssfy = None
             else:
-                upgrd = rclssfy = None
-        else:
+                upgrd = rclssfy = dmlsh = None
+        elif (clckd_zn.properties['Level'] == 3 and clckd_zn.type[-4:] == 'Zone'):
             upgrd = rclssfy = None
-    return clckd_crds, clckd_zn, upgrd, rclssfy
+            dmlsh = map.draw_prompt(clckd_crds, clckd_zn)[0]
+        else:
+            upgrd = rclssfy = dmlsh = None
+    return clckd_crds, clckd_zn, upgrd, rclssfy, dmlsh
 
 
-def handle_prompt(map, clckd_crds, clckd_zn, upgrd, rclssfy):
+def handle_prompt(map, clckd_crds, clckd_zn, upgrd, rclssfy, dmlsh, dmlsh_cnfrm):
     """
     Handles prompt when viewing the information of the Zone
 
@@ -1306,14 +1387,24 @@ def handle_prompt(map, clckd_crds, clckd_zn, upgrd, rclssfy):
     clcked_zn: Clicked TiledObject
     upgrd: pygame rect
     rclssfy: pygame rect
+    dmlsh: pygame rect
+    dmlsh_cnfrm: pygame rect
 
     Returns:
     All given parameters except for map as a tuple
     """
     if clckd_crds:
         if (clckd_zn):
-            clckd_crds, clckd_zn, upgrd, rclssfy = handle_prompt_logic(
-                map, clckd_crds, clckd_zn, upgrd, rclssfy)
+            if (not map.does_obj_exist(clckd_zn)):
+                clckd_crds = clckd_zn = upgrd = rclssfy = dmlsh = dmlsh_cnfrm = None
+                return clckd_crds, clckd_zn, upgrd, rclssfy, dmlsh, dmlsh_cnfrm
+
+            if (dmlsh_cnfrm):
+                dmlsh_cnfrm = map.draw_confirm_prompt_to_demolish(
+                    clckd_crds, clckd_zn)
+            else:
+                clckd_crds, clckd_zn, upgrd, rclssfy, dmlsh = handle_prompt_logic(
+                    map, clckd_crds, clckd_zn, upgrd, rclssfy, dmlsh)
         else:
             # Reterive the Zone if not clicked in the first place
             zones = [obj for obj in map.get_all_objects() if (
@@ -1321,9 +1412,19 @@ def handle_prompt(map, clckd_crds, clckd_zn, upgrd, rclssfy):
             clckd_zn = tile_in_which_zone(
                 map.get_clicked_tile(clckd_crds), zones)
             if (clckd_zn):
-                clckd_crds, clckd_zn, upgrd, rclssfy = handle_prompt_logic(
-                    map, clckd_crds, clckd_zn, upgrd, rclssfy)
-    return clckd_crds, clckd_zn, upgrd, rclssfy
+                if (not map.does_obj_exist(clckd_zn)):
+                    clckd_crds = clckd_zn = upgrd = rclssfy = dmlsh = dmlsh_cnfrm = None
+                    return clckd_crds, clckd_zn, upgrd, rclssfy, dmlsh, dmlsh_cnfrm
+
+                if (dmlsh_cnfrm):
+                    dmlsh_cnfrm = map.draw_confirm_prompt_to_demolish(
+                        clckd_crds, clckd_zn)
+                else:
+                    clckd_crds, clckd_zn, upgrd, rclssfy, dmlsh = handle_prompt_logic(
+                        map, clckd_crds, clckd_zn, upgrd, rclssfy, dmlsh)
+            else:
+                clckd_crds = clckd_zn = upgrd = rclssfy = dmlsh = dmlsh_cnfrm = None
+    return clckd_crds, clckd_zn, upgrd, rclssfy, dmlsh, dmlsh_cnfrm
 
 
 def handle_tree_growth(map, SZone: TiledObject):
@@ -1380,6 +1481,11 @@ def randomize_initial_forests(map, player, timer):
         map.add_object(frst.instance, player, True)
 
 
+"""
+Menu functions
+"""
+
+
 def resume_game(running, game_loop, run_call_back, allocated_tax):
     """
     Resumes a game.
@@ -1404,7 +1510,7 @@ def resume_game(running, game_loop, run_call_back, allocated_tax):
     run_call_back(running, False, False, allocated_tax)
 
 
-def save_game(running,map, game_loop, run_call_back, allocated_tax, list_of_tiled_objs, saved_game_speed, saved_speed_multiplier, saved_current_time_str):
+def save_game(running, map, game_loop, run_call_back, allocated_tax, list_of_tiled_objs, saved_game_speed, saved_speed_multiplier, saved_current_time_str):
     """
     Saves the game state.
 
@@ -1509,7 +1615,7 @@ def allocate_tax(running, game_loop, run_call_back, allocated_tax):
     run_call_back(running, False, False, allocated_tax)
 
 
-def show_menu(screen,map , running, game_loop, run_call_back, allocated_tax, list_of_tiled_objs, saved_game_speed, saved_speed_multiplier, saved_current_time_str):
+def show_menu(screen, map, running, game_loop, run_call_back, allocated_tax, list_of_tiled_objs, saved_game_speed, saved_speed_multiplier, saved_current_time_str):
     """
     Displays a menu screen to the player.
 
@@ -1585,9 +1691,9 @@ def show_menu(screen,map , running, game_loop, run_call_back, allocated_tax, lis
                     selected = menu_options[selected_option][0]
                     action = menu_options[selected_option][1]
                     if (selected == "Save Game"):
-                        game_loop = action(running,map, game_loop, run_call_back, allocated_tax, list_of_tiled_objs,
+                        game_loop = action(running, map, game_loop, run_call_back, allocated_tax, list_of_tiled_objs,
                                            saved_game_speed, saved_speed_multiplier, saved_current_time_str)
                     else:
                         game_loop = action(running, game_loop,
-                                        run_call_back, allocated_tax)
+                                           run_call_back, allocated_tax)
                     menu_loop = False
