@@ -1,16 +1,8 @@
-import os
-import pygame
 import unittest
+import pygame
 from models.Utils import *
-from models.Map import Map
-from models.Panels.BuilderPanel import BuilderPanel
-from models.Panels.DescriptionPanel import DescriptionPanel
-from models.zones.ResidentialZone import ResidentialZone
 
-# Set the display driver to dummy
-os.environ["SDL_VIDEODRIVER"] = "dummy"
-
-class TestGame(unittest.TestCase):
+class TestAssets(unittest.TestCase):
 
     def test_getFilesFromDir(self):
         """Returns all the files as a list from the given path"""
@@ -27,7 +19,7 @@ class TestGame(unittest.TestCase):
         ]
         filepath = "./Map/Assets/Builder_assets/"
         
-        assert len(all_files) == len(get_files_from_dir(filepath))
+        self.assertEqual(len(all_files), len(get_files_from_dir(filepath)))
 
     def test_get_icons_and_types(self):
         all_icons_and_types = [
@@ -44,7 +36,7 @@ class TestGame(unittest.TestCase):
 
         icons_dir = "./Map/Assets/Builder_assets/"
         icons = [get_icon_and_type(f, icons_dir) for f in get_files_from_dir(icons_dir)]
-        assert len(all_icons_and_types) == len(icons)
+        self.assertEqual(len(all_icons_and_types), len(icons))
 
     def test_get_icon_loc_by_name(self):
         icons_dir = "./Map/Assets/Builder_assets/"
@@ -53,25 +45,7 @@ class TestGame(unittest.TestCase):
         cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer", icons))
         cursorImgRect = cursorImg.get_rect()
         my_cursor = "<rect(0, 0, 70, 70)>"
-        assert my_cursor == str(cursorImgRect)
-
-    def test_has_year_passed_from_creation(self):
-        SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 768
-        SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-        description_panel = DescriptionPanel(0, 0, SCREEN.get_width(), 32)
-        builder_panel = BuilderPanel(0, 32, 96, SCREEN.get_height() - 32)
-        map = Map(SCREEN, builder_panel.get_width(), description_panel.getHeight())
-        game_speed = 1
-        timer = Timer(game_speed, 700)
-        timer.update_time(False)
-        timer.tick(60)
-        x, y = 1, 1
-        TiledObj = (ResidentialZone(x, y, timer.get_current_date_str(), map)).instance
-        # TiledObj.properties['CreationDate'] = "2022-05-02"
-        print(TiledObj.properties['CreationDate'], timer.get_current_date_str(), "BIGG")
-        print("SDfsdf")
-        assert False == has_year_passed_from_creation(TiledObj, timer)
+        self.assertEqual(str(cursorImgRect), my_cursor)
 
 if __name__ == '__main__':
     unittest.main()
-

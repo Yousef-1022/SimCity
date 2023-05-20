@@ -10,7 +10,11 @@ test-job:
     - python3 -m pip install -r requirements.txt
   script:
     - echo "running testcases..."
-    - python3 -m pytest tests/test_game.py
+    - python3 -m pytest tests/TestAssets.py
+    - python3 -m pytest tests/TestCitizens.py
+    - python3 -m pytest tests/TestPoints.py
+    - python3 -m pytest tests/TestTile.py
+    - python3 -m pytest tests/TestTime.py
   only:
     - master
     - develop
