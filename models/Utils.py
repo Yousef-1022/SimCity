@@ -1573,6 +1573,7 @@ def save_game(running, map, game_loop, run_call_back, allocated_tax, list_of_til
         pickle.dump(my_timer, f)
         pickle.dump(obj_count, f)
         pickle.dump(next_obj_count, f)
+        pickle.dump(allocated_tax,f)
 
     for i in range(len(list_of_tiled_objs)):
         list_of_tiled_objs[i]['parent'] = parents[i]

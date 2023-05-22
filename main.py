@@ -69,6 +69,7 @@ def run(running, loaded_game, flag, tax):
             loaded_timer = pickle.load(f)
             loaded_objCount = pickle.load(f)
             loaded_nextObjCount = pickle.load(f)
+            loaded_tax = pickle.load(f)
             map.set_next_obj_id(loaded_nextObjCount)
             map.set_obj_count(loaded_objCount)
 
@@ -123,6 +124,7 @@ def run(running, loaded_game, flag, tax):
         timer.game_speed = loaded_timer[0]
         timer.game_speed_multiplier = loaded_timer[1]
         timer.current_time = timer.get_timer_from_str(loaded_timer[2])
+        allocated_tax = loaded_tax
 
     day = timer.get_current_time().day
     month = timer.get_current_time().month
