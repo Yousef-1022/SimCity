@@ -5,6 +5,7 @@ from models.BuildingAdder import *
 from models.Panels.BuilderPanel import BuilderPanel
 from models.Panels.DescriptionPanel import DescriptionPanel
 from models.Panels.PricePanel import PricePanel
+from models.TaxAllocator import TaskAllocator
 from models.zones.ResidentialZone import ResidentialZone
 from models.zones.IndustrialZone import IndustrialZone
 from models.zones.ServiceZone import ServiceZone
@@ -27,7 +28,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 1024, 768
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 SCROLL_SPEED = 5
 MONEY_PER_DAY = 20
-TAX_VARIABLE = 0.05
+allocated_tax = 0.05
 
 # Map & Panels
 description_panel = DescriptionPanel(0,0, SCREEN.get_width(), 32)
@@ -38,42 +39,6 @@ icons = [get_icon_and_type(f,icons_dir) for f in get_files_from_dir(icons_dir)]
 map = Map(SCREEN, builder_panel.getWidth(), description_panel.getHeight())
 global class_tobuild
 game_loop = True
-
-
-def show_menu(screen, running, game_loop):
-    menu_height = 400
-    menu_width = 400
-    screen_width = 1024
-    screen_height = 768
-    menu_x = (screen_width - menu_width) // 2
-    menu_y = (screen_height - menu_height) // 2
-
-    menu_surface = pygame.Surface((menu_width, menu_height))
-    menu_surface.fill((200, 200, 200))
-    # Create the menu options
-    menu_options = [
-        ("Resume Game", resume_game),
-        ("Save Game", save_game),
-        ("Main menu", main_menu)
-    ]
-
-    # Add the menu options to the menu surface
-    font = pygame.font.SysFont("Calibri", 48, bold=True)
-    selected_option = 0
-    menu_loop = True
-    while menu_loop:
-        for i, (text, action) in enumerate(menu_options):
-            text_surface = font.render(text, True, (0, 0, 0))
-            text_rect = text_surface.get_rect(center=(menu_width / 2, 75 + i * 75))
-            if i == selected_option:
-                pygame.draw.rect(menu_surface, (220, 220, 220), text_rect, 2)
-            else:
-                pygame.draw.rect(menu_surface, (180, 180, 180), text_rect, 2)
-            menu_surface.blit(text_surface, text_rect)
-
-        # Show the menu surface on the main surface
-        screen.blit(menu_surface, (menu_x, menu_y))
-        pygame.display.update()
 
 # Game simulation variables
 player = Player("HUMAN", 100000)
@@ -89,7 +54,7 @@ Grid = GridSystem(map)
 def resume_game(running, game_loop):
     print("========================== resume ==================================")
     game_loop = True
-    run(running, False, False)
+    run(running, False, False, allocated_tax)
 
 def save_game(running, game_loop):
     print("========================== save ==================================")
@@ -123,8 +88,8 @@ def save_game(running, game_loop):
     my_timer.append(saved_game_speed)
     my_timer.append(saved_speed_multiplier)
     my_timer.append(saved_current_time_str)
-    obj_count = map.getObjCount()
-    next_obj_count = map.getNextObjId() 
+    obj_count = map.get_object_count()
+    next_obj_count = map.get_next_obj_id() 
 
     # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
     with open('game_state.pickle', 'wb') as f:
@@ -138,15 +103,22 @@ def save_game(running, game_loop):
         list_of_tiled_objs[i]['parent'] = parents[i]
         if list_of_tiled_objs[i]['type'][-4:] == 'Zone':
             for building in list_of_tiled_objs[i]['properties']['Buildings']:
-                building['parent'] = map.returnMap()
+                building['parent'] = map.return_map()
 
     game_loop = True
-    run(running, False, False)
+    run(running, False, False, allocated_tax)
 
 def main_menu(running, game_loop):
     print("========================== Main menu ==================================")
     game_loop= False
     # return game_loop
+
+def allocate_tax (running, game_loop):
+    print("========================== Tax allocation is runnint ==================================")
+    taskAllactor = TaskAllocator()
+    taskAllactor.run()
+    allocated_tax = float(taskAllactor.get_input_text()) 
+    run(running, False, False, allocated_tax)
 
 def show_menu(screen, running, game_loop):
     menu_height = 400
@@ -162,7 +134,8 @@ def show_menu(screen, running, game_loop):
     menu_options = [
         ("Resume Game", resume_game),
         ("Save Game", save_game),
-        ("Main menu", main_menu)
+        ("Main menu", main_menu),
+        ("Allocate Tax", allocate_tax)
     ]
 
     # Add the menu options to the menu surface
@@ -199,104 +172,6 @@ def show_menu(screen, running, game_loop):
                     game_loop = action(running, game_loop)
                     menu_loop = False
 
-def handle_satisfaction_zone_addition(SZone:TiledObject):
-    """
-    After the player creates a Stadium, PoliceDepartment, or Forest, it checks nearby Citizens and adds satisfaction
-    """
-    for RZone in map.get_residential_zones():
-        if (distance_between_two(RZone,SZone) <= SZone.properties['Radius']):
-            if (SZone.type == "Forest"):
-                if(is_there_a_blocker_between(SZone,RZone,map.get_all_objects())):
-                    continue
-                else:
-                    for c in RZone.properties['Citizens']:
-                        tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
-                        if tmp <= 100:
-                            c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
-            else:
-                for c in RZone.properties['Citizens']:
-                    tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
-                    if tmp <= 100:
-                        c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
-                    
-def handle_tree_growth(SZone:TiledObject):
-    """
-    After the tree grows, it must affect the nearby citizens
-    """
-    for RZone in map.get_residential_zones():
-        if (distance_between_two(RZone,SZone) <= SZone.properties['Radius']):
-            if(is_there_a_blocker_between(SZone,RZone,map.get_all_objects())):
-                continue
-            else:
-                for c in RZone.properties['Citizens']:
-                    tmp = c.satisfaction + (SZone.properties['Satisfaction']*c.satisfaction) 
-                    if tmp <= 100:
-                        c.satisfaction += (SZone.properties['Satisfaction']*c.satisfaction)
-            
-
-def handle_prompt(clckd_crds,clckd_zn,upgrd,rclssfy):
-    """
-    Handles prompt when viewing the information of the Zone
-    """
-    if clckd_crds:
-        if (clckd_zn):
-            # Handle deletion of PoliceDepartment or Stadium
-            if(clckd_zn.type == "PoliceDepartment" or clckd_zn.type == "Stadium"):
-                upgrd = None
-                rclssfy = map.draw_prompt_to_delete(clckd_crds,clckd_zn)
-            else:
-                # Handle already clicked Zone (RZone,CZone,IZone)
-                upgrd = rclssfy = None
-                if(clckd_zn.properties['Level'] <= 3 and clckd_zn.type[-4:] == 'Zone'):
-                    btn = map.draw_prompt(clckd_crds,clckd_zn)
-                    amount_citizens = len(clckd_zn.properties['Citizens'])
-                    amount_buildings = len(clckd_zn.properties['Buildings'])
-                    if (amount_citizens == 0 and amount_buildings == 0):
-                        upgrd = None
-                        rclssfy = btn
-                    elif (amount_citizens >= 1):
-                        if(clckd_zn.type == 'ResidentialZone' and (amount_buildings <= 4 and amount_buildings > 0)):
-                            upgrd = btn
-                            rclssfy = None
-                        elif (clckd_zn.type == 'IndustrialZone' or  clckd_zn.type == 'ServiceZone'):
-                            upgrd = btn
-                            rclssfy = None
-                    else:
-                        upgrd = rclssfy = None
-                else:
-                    upgrd = rclssfy = None
-        else:
-            # Reterive the Zone if not clicked in the first place
-            zones = [obj for obj in map.get_all_objects() if (obj.type != "Forest" and obj.type != "Road")]
-            clckd_zn = tile_in_which_zone(map.getClickedTile(clckd_crds),zones)
-            if (clckd_zn):
-                # Handle deletion of PoliceDepartment or Stadium
-                if(clckd_zn.type == "PoliceDepartment" or clckd_zn.type == "Stadium"):
-                    upgrd = None
-                    rclssfy = map.draw_prompt_to_delete(clckd_crds,clckd_zn)
-                else:
-                    # Handle already clicked Zone (RZone,CZone,IZone)
-                    upgrd = rclssfy = None
-                    if(clckd_zn.properties['Level'] <= 3 and clckd_zn.type[-4:]):
-                        btn = map.draw_prompt(clckd_crds,clckd_zn)
-                        amount_citizens = len(clckd_zn.properties['Citizens'])
-                        amount_buildings = len(clckd_zn.properties['Buildings'])
-                        if (amount_citizens == 0 and amount_buildings == 0):
-                            upgrd = None
-                            rclssfy = btn
-                        elif (amount_citizens >= 1):
-                            if(clckd_zn.type == 'ResidentialZone' and (amount_buildings <= 4 and amount_buildings > 0)):
-                                upgrd = btn
-                                rclssfy = None
-                            elif (clckd_zn.type == 'IndustrialZone' or  clckd_zn.type == 'ServiceZone'):
-                                upgrd = btn
-                                rclssfy = None
-                        else:
-                            upgrd = rclssfy = None
-                    else:
-                        upgrd = rclssfy = None
-    return clckd_crds, clckd_zn, upgrd, rclssfy
-
 def randomize_initial_forests():
     """
     Creates random forests at the start of the game
@@ -306,13 +181,13 @@ def randomize_initial_forests():
     to_insert = random.sample(coords, num_choices)
     for p in to_insert:
         frst = Forest(p[0],p[1],timer.get_current_date_str(),map)
-        map.addObject(frst.instance,player,True)  
+        map.add_object(frst.instance,player,True)  
     
-def run(running, loaded_game, flag):
+def run(running, loaded_game, flag, tax):
+    allocated_tax = tax
     normal_cursor = True
     cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer",icons))
     cursorImgRect = cursorImg.get_rect()
-    TAX_VARIABLE = 0.05
     game_speed  = 1
     global game_loop
     class_tobuild = ""
@@ -325,6 +200,7 @@ def run(running, loaded_game, flag):
             loaded_timer = pickle.load(f)
             loaded_objCount = pickle.load(f)
             loaded_nextObjCount = pickle.load(f)
+            loaded_tax = pickle.load(f)
             map.set_next_obj_id(loaded_nextObjCount)
             map.set_obj_count(loaded_objCount)
         
@@ -345,7 +221,7 @@ def run(running, loaded_game, flag):
                     obj.instance.properties['Year'] = loaded_obj['properties']['Year']
                     obj.instance.properties['Mature'] = loaded_obj['properties']['Mature']
                 obj.instance.id = loaded_obj['id']
-                map.addObject(obj.instance,player,False,True)
+                map.add_object(obj.instance,player,False,True)
                 class_tobuild = -1
             else:
                 map.remove_obj(loaded_obj['x']//32,loaded_obj['y']//32,"Road")
@@ -353,7 +229,7 @@ def run(running, loaded_game, flag):
             if loaded_obj['type'][-4:] == 'Zone':
                 for building in loaded_obj['properties']['Buildings']:
                     b = create_building(building, map)
-                    obj_layer = map.returnMap().get_layer_by_name("ObjectsTop")
+                    obj_layer = map.return_map().get_layer_by_name("ObjectsTop")
                     obj_layer.append(b)
                     obj.instance.properties['Buildings'].append(b.__dict__) 
 
@@ -377,6 +253,7 @@ def run(running, loaded_game, flag):
         timer.game_speed = loaded_timer[0]
         timer.game_speed_multiplier = loaded_timer[1]
         timer.current_time = timer.get_timer_from_str(loaded_timer[2])
+        allocated_tax = loaded_tax
 
     day = timer.get_current_time().day
     month = timer.get_current_time().month
@@ -403,7 +280,7 @@ def run(running, loaded_game, flag):
         cursorImgRect.center = pygame.mouse.get_pos()
         map.display()
 
-        description_panel.display(SCREEN,24,(10,10),(128,128,128),f"Funds: ${player.money} , Citizens: {get_total_citizens()}",(0,0,0))
+        description_panel.display(SCREEN,24,(10,10),(128,128,128),f"Funds: ${player.money}        Citizens: {get_total_citizens()}      Tax: {allocated_tax}",(0,0,0))
         description_panel.displayTime(SCREEN,f"Time: {timer.get_current_date_str()}",(400,10))
         description_panel.display_game_speed(SCREEN, timer, game_speed_multiplier)
         price_panel.display(SCREEN,24,(102, SCREEN.get_height() - 20),(128,128,128),f'${(held_price)} for {class_tobuild}',(0,0,0))
@@ -468,7 +345,7 @@ def run(running, loaded_game, flag):
                         obj.properties['Revenue'] += (MONEY_PER_DAY * total_citizens)
                     # Get revenue (TAX) from WorkZone to Player
                     elif(obj.type != "ResidentialZone" and did_a_year_pass):
-                        revenue = obj.properties['Revenue'] * TAX_VARIABLE
+                        revenue = obj.properties['Revenue'] * allocated_tax
                         player.money += revenue
                         obj.properties['Revenue'] = 0
             day = timer.get_current_time().day
@@ -509,7 +386,7 @@ def run(running, loaded_game, flag):
             elif event.type == pygame.MOUSEBUTTONUP:    # Cursor handling
                 selected_icon = builder_panel.get_selected_icon_index(mouse_pos) 
                 if (not normal_cursor):
-                    x,y = map.getClickedTile(mouse_pos)
+                    x,y = map.get_clicked_tile(mouse_pos)
                     if  x == -1 or y == -1: 
                         normal_cursor= True 
                     else:
@@ -536,10 +413,10 @@ def run(running, loaded_game, flag):
                                 obj = class_obj(x - 1,y - 1,timer.get_current_date_str(),map)
 
                             if (not disaster_make):
-                                instance = map.addObject(obj.instance,player)
+                                instance = map.add_object(obj.instance,player)
                                 # Satisfaction handling for: Forest, Stadium, and PoliceDepartment
                                 if(is_satisfaction_zone(instance)):
-                                    handle_satisfaction_zone_addition(instance)
+                                    handle_satisfaction_zone_addition(map,instance)
                             class_tobuild = "Nothing"
                             held_price = 0
                         else:
@@ -560,14 +437,14 @@ def run(running, loaded_game, flag):
                         held_price = 0 
             elif event.type == pygame.KEYDOWN:  # Scroll handling
                 clicked_cords = clicked_zone = upgrade = reclassify = None
-                map.handleScroll(event.key)
+                map.handle_scroll(event.key)
         
 
         if not normal_cursor:
             clicked_cords = clicked_zone = upgrade = reclassify = None
             SCREEN.blit(cursorImg, cursorImgRect)
         
-        clicked_cords,clicked_zone,upgrade,reclassify = handle_prompt(clicked_cords,clicked_zone,upgrade,reclassify)
+        clicked_cords,clicked_zone,upgrade,reclassify = handle_prompt(map,clicked_cords,clicked_zone,upgrade,reclassify)
         handle_disaster_logic(map,timer)
         handle_disaster_random_logic(map,timer.get_current_date_str(),randomizer_for_disaster)
 
