@@ -1,24 +1,23 @@
 import xml.etree.ElementTree as ET
 from pytmx import TiledObject
 
-
 class PoliceDepartment:
     """
     PoliceDepartment has 4 tiles radius of satisfaction increase
     It can increase the satisfaction of Citizens in nearby RZones by 10%
     """
     price = 500
-
-    def __init__(self, x, y, creationTime, mapInstance):
-        self.x = x
+    
+    def __init__(self,x,y,creationTime,mapInstance):
+        self.x = x 
         self.y = y
         self.price = PoliceDepartment.price
         self.creationTime = creationTime
         objType = type(self).__name__
-        placeholder = mapInstance.get_static_object_by_type(objType)
-        width = mapInstance.get_tile_width()
-        height = mapInstance.get_tile_height()
-        id = mapInstance.get_next_obj_id()
+        placeholder = mapInstance.getStaticObjectByType(objType)
+        width = mapInstance.getTileWidth()
+        height = mapInstance.getTileHeight()
+        id = mapInstance.getNextObjId()
         xml = ET.fromstring(f' \
             <object id="{id}" name="{placeholder.name}" type="{placeholder.type}" gid="{0}" x="{self.x*width}" y="{self.y*height}" width="{placeholder.width}" height="{placeholder.height}"> \
                 <properties> \
@@ -33,7 +32,7 @@ class PoliceDepartment:
                     <property name="Satisfaction" type="float" value="0.15"/> \
                 </properties> \
             </object>')
-        obj = TiledObject(mapInstance.return_map(), xml)
-        obj.gid = placeholder.gid
+        obj = TiledObject(mapInstance.returnMap(),xml)
+        obj.gid=placeholder.gid
         obj.properties['Citizens'] = []
         self.instance = obj
