@@ -52,6 +52,25 @@ class Map:
         self.__scroll_x = 0
         self.__scroll_y = 0
         self.__objcount = 0
+        
+    
+    def reinitialize(self, screen, leftPanelWidth, topOrBottomPanelHeight):
+        """
+        Reinitializes the Map object.
+
+        Args:
+            screen: The screen object where the map will be displayed.
+            leftPanelWidth: The width of the builder panel.
+            topOrBottomPanelHeight: The height of the top or bottom panel.
+        """
+        self.__screen = screen
+        self.__map = load_pygame('./Map/TMX/befk_map.tmx')
+        self.__panel_width = leftPanelWidth
+        self.__panel_height = topOrBottomPanelHeight
+        self.__scroll_x = 0
+        self.__scroll_y = 0
+        self.__objcount = 0
+        
 
     def display(self):
         """Displays the map after initialization"""
@@ -158,7 +177,7 @@ class Map:
         obj_layer = self.__map.get_layer_by_name("Objects")
         roads = self.get_all_roads()
         for obj in obj_layer:
-            if (obj.x // 32) == x and (obj.y // 32) == y and obj.type == obj_type:
+            if (obj.x // (self.get_tile_width())) == x and (obj.y // (self.get_tile_height())) == y and obj.type == obj_type:
                 connected_roads = get_all_connected_roads(obj, roads)
                 connected_objects_temp = list(
                     set([ob for ob in get_all_neighboring_objects(connected_roads, map)]))

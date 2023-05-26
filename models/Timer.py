@@ -30,6 +30,19 @@ class Timer:
         self.game_speed = game_speed
         self.time_factor = (60 / self.game_speed) * self.game_speed_multiplier
         self.current_time = datetime.datetime.now()
+        
+    def reinitialize(self, game_speed: int, game_speed_multiplier: int):
+        """Reinitialize the Timer object.
+
+        Args:
+            game_speed (int): The desired speed of the game in frames per second.
+            game_speed_multiplier (int): The multiplier to apply to the time factor to make the game time pass faster.
+        """
+        self.clock = pygame.time.Clock()
+        self.game_speed_multiplier = game_speed_multiplier
+        self.game_speed = game_speed
+        self.time_factor = (60 / self.game_speed) * self.game_speed_multiplier
+        self.current_time = datetime.datetime.now()
 
     def get_time_factor(self):
         """Returns the time factor of the game."""

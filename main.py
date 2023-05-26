@@ -51,18 +51,21 @@ timer = Timer(game_speed, game_speed_multiplier[chosen_speed])
 paused = False
 
 
-def run(running, loaded_game, flag, tax):
-    global list_of_tiled_objs, saved_game_speed, saved_speed_multiplier, saved_current_time_str
-    allocated_tax = tax
-    normal_cursor = True
-    cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer", icons))
-    cursorImgRect = cursorImg.get_rect()
-    game_speed = 1
-    global game_loop
+def run(running, loaded_game, new_game_flag, tax):
+    global list_of_tiled_objs, saved_game_speed, saved_speed_multiplier, saved_current_time_str, game_loop
     class_tobuild = ""
-    # handle saved tiled objects
+    allocated_tax = tax
+    game_speed = 1
+    
+    # Handle saved tiled objects
     initial_citizens = []
     if loaded_game:
+        
+        player.reinitialize("HUMAN",100000)
+        timer.reinitialize(game_speed, game_speed_multiplier[chosen_speed])
+        map.reinitialize(SCREEN, builder_panel.get_width(), description_panel.get_height())
+        Citizen.reinitialize()
+        
         with open('game_state.pickle', 'rb') as f:
             loaded_citizens = pickle.load(f)
             loaded_objs = pickle.load(f)
@@ -73,14 +76,14 @@ def run(running, loaded_game, flag, tax):
             map.set_next_obj_id(loaded_nextObjCount)
             map.set_obj_count(loaded_objCount)
 
-        # Handle object creation
+        # Handle object restore
         for loaded_obj in loaded_objs:
             class_tobuild = loaded_obj['type']
             class_obj = globals().get(class_tobuild)
             obj = ""
             if class_obj is not None:
-                obj = class_obj(loaded_obj['x']//32, loaded_obj['y'] //
-                                32, timer.get_current_date_str(), map)    # Change
+                obj = class_obj(loaded_obj['x']//(map.get_tile_width()), loaded_obj['y'] //
+                                (map.get_tile_height()), timer.get_current_date_str(), map)    # Change
                 obj.instance.properties['CreationDate'] = loaded_obj['properties']['CreationDate']
                 if (loaded_obj['type'][-4:] == 'Zone'):
                     obj.instance.properties['Level'] = loaded_obj['properties']['Level']
@@ -94,9 +97,8 @@ def run(running, loaded_game, flag, tax):
                 map.add_object(obj.instance, player, False, True)
                 class_tobuild = -1
             else:
-                map.remove_obj(loaded_obj['x']//32,
-                               loaded_obj['y']//32, "Road")
-            normal_cursor = True
+                map.remove_obj(loaded_obj['x']//(map.get_tile_width()),
+                               loaded_obj['y']//(map.get_tile_height()), "Road")
             if loaded_obj['type'][-4:] == 'Zone':
                 for building in loaded_obj['properties']['Buildings']:
                     b = create_building(building, map)
@@ -104,38 +106,52 @@ def run(running, loaded_game, flag, tax):
                     obj_layer.append(b)
                     obj.instance.properties['Buildings'].append(b.__dict__)
 
-        # handle citizens restore
+        # Handle citizens restore
         for loaded_citizen in loaded_citizens:
-            # citizen
             c = Citizen()
-            # handle home zone
+            # Handle RZone
             if loaded_citizen[1] != -1:
                 home_zone = map.get_zone_by_id(loaded_citizen[1])
                 if home_zone:
                     home_zone.properties['Citizens'].append(c)
                     c.home = home_zone
-            # handle work zone
+            # Handle WZone
             if loaded_citizen[2] != -1:
                 work_zone = map.get_zone_by_id(loaded_citizen[2])
                 if work_zone:
                     work_zone.properties['Citizens'].append(c)
                     c.work = work_zone
             c.satisfaction = loaded_citizen[3]
+            
         timer.game_speed = loaded_timer[0]
         timer.game_speed_multiplier = loaded_timer[1]
         timer.current_time = timer.get_timer_from_str(loaded_timer[2])
         allocated_tax = loaded_tax
-
+    
+        
+    cursorImg = pygame.image.load(get_icon_loc_by_name("bulldozer", icons))
+    cursorImgRect = cursorImg.get_rect()
+    normal_cursor = True
+    
     day = timer.get_current_time().day
     month = timer.get_current_time().month
     game_start_time = timer.get_current_date_str()
-    if not loaded_game and flag:
-        flag = False
+
+    if not loaded_game and new_game_flag:
+        
+        player.reinitialize("HUMAN",100000)
+        timer.reinitialize(game_speed, game_speed_multiplier[chosen_speed])
+        map.reinitialize(SCREEN, builder_panel.get_width(), description_panel.get_height())
+        Citizen.reinitialize()
+   
         initial_citizens = []
         for i in range(1, 11):
             c = Citizen()
             initial_citizens.append(c)
         randomize_initial_forests(map, player, timer)
+        
+    loaded_game = False
+    new_game_flag = True
     game_loop = True
 
 
@@ -149,6 +165,7 @@ def run(running, loaded_game, flag, tax):
     held_price = 0
     class_tobuild = "Nothing"
     randomizer_for_disaster = False
+    
     while game_loop:
 
         cursorImgRect.center = pygame.mouse.get_pos()

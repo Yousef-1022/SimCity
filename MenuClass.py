@@ -122,7 +122,7 @@ class MenuClass:
         self.current_option = 0
         self.show_instructions = False
         self.loaded_game = False
-        self.flag = True
+        self.new_game_flag = False
 
     def draw_instructions(self):
         """
@@ -203,16 +203,13 @@ class MenuClass:
         elif event.key == pygame.K_RETURN:
             if self.current_option == 0:
                 print("New Game selected")
-                self.start_menu = False
-                self.start_game = True
+                self.initialize_start_new_game_vars()
             elif self.current_option == 1:
                 self.menu_mode = False
                 self.current_option = 0
             elif self.current_option == 2:
                 print("Load Game selected")
-                self.loaded_game = True
-                self.start_menu = False
-                self.start_game = True
+                self.initialize_start_load_game_vars()
             elif self.current_option == 3:
                 self.running = False
         elif event.key == pygame.K_ESCAPE:
@@ -294,9 +291,13 @@ class MenuClass:
                 if i == 0:
                     print("New Game selected")
                 elif i == 1:
+                    self.new_game_flag = True
+                    self.loaded_game = False
                     self.menu_mode = False
                     self.current_option = 0
                 elif i == 2:
+                    self.new_game_flag = False
+                    self.loaded_game = True
                     print("Load Game selected")
                 elif i == 3:
                     self.running = False
@@ -456,13 +457,38 @@ class MenuClass:
         print("Save selected")
         # TODO: SAVE THE STATUS OF THE CURRENT GAME
 
-    def start_new_game(self):
-        print("New Game selected")
+    def initialize_start_new_game_vars(self):
+        """
+        Changes the variables of the MenuClass when `New Game` is clicked to as follows:
+        
+        `new_game_flag` = `True`
+        
+        `loaded_game` to `False`
+        
+        `start_menu` = `False`
+        
+        `start_game` = `True`
+        """
+        
+        self.new_game_flag = True
+        self.loaded_game = False
         self.start_menu = False
         self.start_game = True
 
-    def load_game(self):
-        print("Load Game selected")
+    def initialize_start_load_game_vars(self):
+        """
+        Changes the variables of the MenuClass when `Load Game` is clicked to as follows:
+        
+        `new_game_flag` = `False`
+        
+        `loaded_game` to `True`
+        
+        `start_menu` = `False`
+        
+        `start_game` = `True`
+        """
+        
+        self.new_game_flag = False
         self.loaded_game = True
         self.start_menu = False
         self.start_game = True
@@ -510,4 +536,4 @@ class MenuClass:
                     taskAllocator.run()
                     allocated_tax = float(taskAllocator.get_input_text())
                 main.run(self.running, self.loaded_game,
-                         self.flag, allocated_tax)
+                         self.new_game_flag, allocated_tax)

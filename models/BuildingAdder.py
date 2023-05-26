@@ -9,7 +9,7 @@ def get_possible_coords(TiledObj: TiledObject) -> list:
     Used only by residential zone
     """
     lst = []
-    x1, y1 = (TiledObj.x)//32, (TiledObj.y)//32
+    x1, y1 = (TiledObj.x)//(TiledObj.parent.tilewidth), (TiledObj.y)//(TiledObj.parent.tileheight)
     lst.append((x1, y1))
     x2, y2 = (x1 + 2), y1
     lst.append((x2, y2))
@@ -29,7 +29,7 @@ def get_occupied_tiles(TiledObj: TiledObject) -> list:
     for o in Objects:
         if o.type != 'Disaster':
             if o.properties['linked_id'] == TiledObj.id:
-                lst.append((o.x//32, o.y//32))
+                lst.append((o.x//(o.parent.tilewidth), o.y//(o.parent.tileheight)))
     return lst
 
 
