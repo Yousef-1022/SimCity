@@ -350,10 +350,10 @@ def run(running, loaded_game, new_game_flag, tax):
                         
                 if selected_icon != None:
                     # Handle cursor at selection
-                    cursorImgRect = cursorImg.get_rect()
                     image_size = get_image_size(icons[selected_icon][1])
                     cursorImg = pygame.transform.scale(pygame.image.load(
                         icons[selected_icon][0]), (image_size, image_size))
+                    cursorImgRect = cursorImg.get_rect()
                     cursorImgRect.center = pygame.mouse.get_pos()
                     normal_cursor = False
                     class_tobuild = icons[selected_icon][1]
