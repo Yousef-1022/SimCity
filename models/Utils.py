@@ -239,13 +239,14 @@ def get_all_connected_roads(road, road_list):
     return visited
 
 
-def get_connected_roads(current_road, road_list):
+def get_connected_roads(current_road, road_list, dimension_tuple=None):
     """
     Returns a list of all roads connected to the given current road.
 
     Args:
         current_road: The current road coordinates as a tuple (x, y).
         road_list: The list of all roads.
+        dimension_tuple: Tuple consisting of tilewidth and tileheight
 
     Returns:
         list: A list of all connected roads.
@@ -259,30 +260,35 @@ def get_connected_roads(current_road, road_list):
         >>> get_connected_roads(current_road, roads)
         [road1, road2, road3]
     """
+    tilewidth , tileheight = 32 , 32
+    if dimension_tuple:
+        tilewidth = dimension_tuple[0]
+        tileheight = dimension_tuple[1]
+        
     connected_roads = []
-    x = int(current_road[0] // 32) - 1
-    y = int(current_road[1] // 32)
+    x = int(current_road[0] // tilewidth) - 1
+    y = int(current_road[1] // tileheight)
     road = get_connected_road_tiles(x, y, 'L', road_list)
     while (road != None):
         x = x - 1
         connected_roads.append(road)
         road = get_connected_road_tiles(x, y, 'L', road_list)
-    x = int(current_road[0] // 32) + 1
-    y = int(current_road[1] // 32)
+    x = int(current_road[0] // tilewidth) + 1
+    y = int(current_road[1] // tileheight)
     road = get_connected_road_tiles(x, y, 'R', road_list)
     while (road != None):
         x = x + 1
         connected_roads.append(road)
         road = get_connected_road_tiles(x, y, 'R', road_list)
-    x = int(current_road[0] // 32)
-    y = int(current_road[1] // 32) - 1
+    x = int(current_road[0] // tilewidth)
+    y = int(current_road[1] // tileheight) - 1
     road = get_connected_road_tiles(x, y, 'U', road_list)
     while (road != None):
         y = y - 1
         connected_roads.append(road)
         road = get_connected_road_tiles(x, y, 'U', road_list)
-    x = int(current_road[0] // 32)
-    y = int(current_road[1] // 32) + 1
+    x = int(current_road[0] // tilewidth)
+    y = int(current_road[1] // tileheight) + 1
     road = get_connected_road_tiles(x, y, 'D', road_list)
     while (road != None):
         y = y + 1
@@ -316,16 +322,16 @@ def get_connected_road_tiles(x, y, direction, roads):
     obj_coord_y = y
     for road in roads:
         if direction == 'U':
-            if int(road.x // 32) == x and int(road.y // 32) == obj_coord_y:
+            if int(road.x // (road.parent.tilewidth)) == x and int(road.y // (road.parent.tileheight)) == obj_coord_y:
                 return road
         elif direction == 'D':
-            if int(road.x // 32) == x and int(road.y // 32) == obj_coord_y:
+            if int(road.x // (road.parent.tilewidth)) == x and int(road.y // (road.parent.tileheight)) == obj_coord_y:
                 return road
         elif direction == 'L':
-            if int(road.x // 32) == obj_coord_x and int(road.y // 32) == y:
+            if int(road.x // (road.parent.tilewidth)) == obj_coord_x and int(road.y // (road.parent.tileheight)) == y:
                 return road
         elif direction == 'R':
-            if int(road.x // 32) == obj_coord_x and int(road.y // 32) == y:
+            if int(road.x // (road.parent.tilewidth)) == obj_coord_x and int(road.y // (road.parent.tileheight)) == y:
                 return road
     return None
 
@@ -348,8 +354,8 @@ def get_outer_circumference(obj: TiledObject):
         >>> get_outer_circumference(tiled_obj)
         [(x1, y1), (x2, y2), ...]
     """
-    tilex = (obj.x // 32)
-    tiley = (obj.y // 32)
+    tilex = (obj.x // (obj.parent.tilewidth))
+    tiley = (obj.y // (obj.parent.tileheight))
     res = []
     for i in range(0, 4):
         res.append((tilex + i, tiley - 1))
@@ -386,7 +392,7 @@ def get_connected_by_road_objects(zone, map):
     roads_connected_to_zone = []
     for tup in c:  # get all surrounding roads to the zone
         for road in roads:
-            if int(tup[0]) == int(road.x // 32) and int(tup[1]) == int(road.y // 32):
+            if int(tup[0]) == int(road.x // ((map.get_tile_width()))) and int(tup[1]) == int(road.y // ((map.get_tile_height()))):
                 roads_connected_to_zone.append(road)
     connected_roads = []
     for road in roads_connected_to_zone:
@@ -470,8 +476,8 @@ def get_neighboring_object(road, map):
         >>> get_neighboring_object(road_obj, map_obj)
         obj1
     """
-    x = int(road.x // 32)
-    y = int(road.y // 32)
+    x = int(road.x // (map.get_tile_width()))
+    y = int(road.y // (map.get_tile_height()))
     objects = map.get_all_objects()
     for obj in objects:
         if obj.type == "IndustrialZone" or obj.type == "ServiceZone":
@@ -502,8 +508,8 @@ def get_all_neighboring_object(road, map):
         >>> get_all_neighboring_object(road_obj, map_obj)
         [obj1, obj2, obj3]
     """
-    x = int(road.x // 32)
-    y = int(road.y // 32)
+    x = int(road.x // (map.get_tile_width()))
+    y = int(road.y // (map.get_tile_height()))
     objects = map.get_all_objects()
     for object in objects:
         c = get_outer_circumference(object)
@@ -1089,10 +1095,11 @@ def dfs(current_road, visited, road_list):
     """
     # Extract relevant attributes into a tuple
     road_tuple = (current_road.x, current_road.y)
+    dimension_tuple = (current_road.parent.tilewidth,current_road.parent.tileheight)
     visited.add(current_road)
 
     # Explore adjacent roads (branches)
-    connected_roads = get_connected_roads(road_tuple, road_list)
+    connected_roads = get_connected_roads(road_tuple, road_list,dimension_tuple)
 
     for road in connected_roads:
         # Extract relevant attributes into a tuple
@@ -1318,7 +1325,7 @@ def handle_disaster_random_logic(mapInstance, givenDate, randomizer: bool):
                 if to_destroy in d.properties['linked_objs']:
                     return
             disaster_make = Disaster(
-                to_destroy.x//32, to_destroy.y//32, givenDate, mapInstance)
+                to_destroy.x//(mapInstance.get_tile_width()), to_destroy.y//(mapInstance.get_tile_height()), givenDate, mapInstance)
             obj = disaster_make.instance
             obj.properties['linked_objs'] = [to_destroy]
             mapInstance.add_disaster_to_map(obj)
@@ -1505,7 +1512,7 @@ def resume_game(running, game_loop, run_call_back, allocated_tax):
     Returns:
         None
     """
-    print("========================== resume ==================================")
+    #print("========================== resume ==================================")
     game_loop = True
     run_call_back(running, False, False, allocated_tax)
 
@@ -1532,7 +1539,7 @@ def save_game(running, map, game_loop, run_call_back, allocated_tax, list_of_til
     Returns:
         None
     """
-    print("========================== save ==================================")
+    #print("========================== save ==================================")
     citizens = []
     citizens_objs = Citizen.get_all_citizens()
     for citizen_id, citizen in citizens_objs.items():
@@ -1549,15 +1556,15 @@ def save_game(running, map, game_loop, run_call_back, allocated_tax, list_of_til
         citizen_list.append(citizen.satisfaction)
         citizens.append(citizen_list)
 
-    parents = []
+    saved_citizens = []
     # update tiled_object list
     for obj in list_of_tiled_objs:
-        obj['properties']['Citizens'] = []
-        parents.append(obj['parent'])
-        obj['parent'] = ""
         if obj['type'][-4:] == 'Zone':
+            saved_citizens.append(obj['properties']['Citizens'])
             for building in obj['properties']['Buildings']:
                 building['parent'] = ""
+        obj['properties']['Citizens'] = []
+        obj['parent'] = ""
 
     my_timer = []
     my_timer.append(saved_game_speed)
@@ -1565,6 +1572,7 @@ def save_game(running, map, game_loop, run_call_back, allocated_tax, list_of_til
     my_timer.append(saved_current_time_str)
     obj_count = map.get_object_count()
     next_obj_count = map.get_next_obj_id()
+    scroll_coords = map.get_scroll_coordinates()
 
     # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
     with open('game_state.pickle', 'wb') as f:
@@ -1574,11 +1582,15 @@ def save_game(running, map, game_loop, run_call_back, allocated_tax, list_of_til
         pickle.dump(obj_count, f)
         pickle.dump(next_obj_count, f)
         pickle.dump(allocated_tax,f)
+        pickle.dump(scroll_coords,f)
 
-    for i in range(len(list_of_tiled_objs)):
-        list_of_tiled_objs[i]['parent'] = parents[i]
-        if list_of_tiled_objs[i]['type'][-4:] == 'Zone':
-            for building in list_of_tiled_objs[i]['properties']['Buildings']:
+    tmp_counter = 0
+    for obj in list_of_tiled_objs:
+        obj['parent'] = map.return_map()
+        if obj['type'][-4:] == 'Zone':
+            obj['properties']['Citizens'] = saved_citizens[tmp_counter]
+            tmp_counter += 1
+            for building in obj['properties']['Buildings']:
                 building['parent'] = map.return_map()
 
     game_loop = True
@@ -1589,7 +1601,7 @@ def main_menu(running, game_loop, run_call_back, allocated_tax):
     """
     Displays the main menu.
     """
-    print("========================== Main menu ==================================")
+    #print("========================== Main menu ==================================")
     game_loop = False
 
 
@@ -1609,7 +1621,7 @@ def allocate_tax(running, game_loop, run_call_back, allocated_tax):
     Returns:
         None
     """
-    print("========================== Tax allocation is runnint ==================================")
+    #print("========================== Tax allocation is running ==================================")
     taskAllactor = TaskAllocator()
     taskAllactor.run()
     allocated_tax = float(taskAllactor.get_input_text())
@@ -1618,7 +1630,7 @@ def allocate_tax(running, game_loop, run_call_back, allocated_tax):
 
 def show_menu(screen, map, running, game_loop, run_call_back, allocated_tax, list_of_tiled_objs, saved_game_speed, saved_speed_multiplier, saved_current_time_str):
     """
-    Displays a menu screen to the player.
+    Displays the ingame menu screen to the player.
 
     This function is used to display a menu screen to the player with various options.
     It takes several parameters including the screen surface, game map, running flag, game loop flag,
@@ -1680,9 +1692,30 @@ def show_menu(screen, map, running, game_loop, run_call_back, allocated_tax, lis
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            
+            # Mouse click
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                for i, option in enumerate(menu_options):
+                    option_text = font.render(option[0], True, (255, 255, 255))
+                    option_rect = option_text.get_rect(center=(menu_x + menu_width // 2, menu_y + 75 + i * 75))
+                    if option_rect.collidepoint(event.pos):
+                        selected = option[0]
+                        action = option[1]
+                        if (selected == "Save Game"):
+                            game_loop = action(running, map, game_loop, run_call_back, allocated_tax, list_of_tiled_objs,
+                                               saved_game_speed, saved_speed_multiplier, saved_current_time_str)
+                        else:
+                            game_loop = action(running, game_loop,
+                                               run_call_back, allocated_tax)
+                        menu_loop = False
+
+            # Keyboard click                         
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return
+                    action = menu_options[0][1]
+                    game_loop = action(running, game_loop,
+                                           run_call_back, allocated_tax)
+                    menu_loop = False
                 elif event.key == pygame.K_UP:
                     selected_option = max(0, selected_option - 1)
                 elif event.key == pygame.K_DOWN:

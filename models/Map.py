@@ -33,6 +33,7 @@ class Map:
         get_tile_width(self): Returns the tile width.
         collide_with_zone(self, zone1, zone2): Checks if two zones overlap.
         collide_with_water(self, obj_x_coord, obj_y_coord, obj_width, obj_height): Checks if an object collides with water.
+        get_scroll_coordinates(self): Returns scroll_x and scroll_y in a list 
 
     """
 
@@ -52,6 +53,25 @@ class Map:
         self.__scroll_x = 0
         self.__scroll_y = 0
         self.__objcount = 0
+        
+    
+    def reinitialize(self, screen, leftPanelWidth, topOrBottomPanelHeight):
+        """
+        Reinitializes the Map object.
+
+        Args:
+            screen: The screen object where the map will be displayed.
+            leftPanelWidth: The width of the builder panel.
+            topOrBottomPanelHeight: The height of the top or bottom panel.
+        """
+        self.__screen = screen
+        self.__map = load_pygame('./Map/TMX/befk_map.tmx')
+        self.__panel_width = leftPanelWidth
+        self.__panel_height = topOrBottomPanelHeight
+        self.__scroll_x = 0
+        self.__scroll_y = 0
+        self.__objcount = 0
+        
 
     def display(self):
         """Displays the map after initialization"""
@@ -158,7 +178,7 @@ class Map:
         obj_layer = self.__map.get_layer_by_name("Objects")
         roads = self.get_all_roads()
         for obj in obj_layer:
-            if (obj.x // 32) == x and (obj.y // 32) == y and obj.type == obj_type:
+            if (obj.x // (self.get_tile_width())) == x and (obj.y // (self.get_tile_height())) == y and obj.type == obj_type:
                 connected_roads = get_all_connected_roads(obj, roads)
                 connected_objects_temp = list(
                     set([ob for ob in get_all_neighboring_objects(connected_roads, map)]))
@@ -275,6 +295,13 @@ class Map:
         Loading game 
         """
         self.__objcount = cnt
+        
+    def set_scrollers(self,scrollers : list):
+        """
+        Sets the map's scroll_x and scroll_y attributes
+        """
+        self.__scroll_x = scrollers[0]
+        self.__scroll_y = scrollers[1]
 
     def get_static_object_by_type(self, type):
         """
@@ -721,3 +748,9 @@ class Map:
         Returns all active disasters currently happening
         """
         return [obj for obj in self.__map.get_layer_by_name("ObjectsTop") if obj.type == 'Disaster' and obj.properties['Placeholder'] == 'dynamic']
+    
+    def get_scroll_coordinates(self) -> list:
+        """
+        Returns the Scroll handling variables
+        """
+        return [self.__scroll_x,self.__scroll_y]

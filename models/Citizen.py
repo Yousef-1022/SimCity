@@ -25,6 +25,14 @@ class Citizen:
         self.id = Citizen.next_id
         Citizen.next_id += 1
         Citizen.citizens[self.id] = self
+        
+    @classmethod
+    def reinitialize(self):
+        """
+        Reinitializes all Citizen objects back to None, next_id to 1.
+        """
+        Citizen.next_id = 1
+        Citizen.citizens.clear()
 
     @classmethod
     def get_citizens_len(cls):

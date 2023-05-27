@@ -17,3 +17,10 @@ class Player:
         """
         self.name = name
         self.money = money
+        
+    def reinitialize(self,name,money):
+        """
+        Reinitializes the player object back with the given values
+        """
+        self.name = name
+        self.money = money

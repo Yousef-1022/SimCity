@@ -55,7 +55,6 @@ class DescriptionPanel(Panel):
             if button_rect.collidepoint(mouse_x, mouse_y):
                 chosen_speed = i
                 timer.game_speed_multiplier = game_speed_multiplier[i]
-                print(f"Chosen Speed: {chosen_speed}")
                 break
             button_x += button_width + button_spacing
 
