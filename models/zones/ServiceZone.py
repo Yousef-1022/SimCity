@@ -28,4 +28,4 @@ class ServiceZone(Zone):
         self.price = ServiceZone.price
         self.instance = super().create_zone_obj(mapInstance)
         self.instance.properties['MaintenanceFee'] = 400
-        self.instance.properties['Capacity'] = 5
+        self.instance.properties['Capacity'] = 15

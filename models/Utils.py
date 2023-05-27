@@ -1512,7 +1512,7 @@ def resume_game(running, game_loop, run_call_back, allocated_tax):
     Returns:
         None
     """
-    print("========================== resume ==================================")
+    #print("========================== resume ==================================")
     game_loop = True
     run_call_back(running, False, False, allocated_tax)
 
@@ -1539,7 +1539,7 @@ def save_game(running, map, game_loop, run_call_back, allocated_tax, list_of_til
     Returns:
         None
     """
-    print("========================== save ==================================")
+    #print("========================== save ==================================")
     citizens = []
     citizens_objs = Citizen.get_all_citizens()
     for citizen_id, citizen in citizens_objs.items():
@@ -1572,6 +1572,7 @@ def save_game(running, map, game_loop, run_call_back, allocated_tax, list_of_til
     my_timer.append(saved_current_time_str)
     obj_count = map.get_object_count()
     next_obj_count = map.get_next_obj_id()
+    scroll_coords = map.get_scroll_coordinates()
 
     # load the parent back (since parent object is not serilizable and therfore cannot be pickled)
     with open('game_state.pickle', 'wb') as f:
@@ -1581,6 +1582,7 @@ def save_game(running, map, game_loop, run_call_back, allocated_tax, list_of_til
         pickle.dump(obj_count, f)
         pickle.dump(next_obj_count, f)
         pickle.dump(allocated_tax,f)
+        pickle.dump(scroll_coords,f)
 
     tmp_counter = 0
     for obj in list_of_tiled_objs:
@@ -1599,7 +1601,7 @@ def main_menu(running, game_loop, run_call_back, allocated_tax):
     """
     Displays the main menu.
     """
-    print("========================== Main menu ==================================")
+    #print("========================== Main menu ==================================")
     game_loop = False
 
 
@@ -1619,7 +1621,7 @@ def allocate_tax(running, game_loop, run_call_back, allocated_tax):
     Returns:
         None
     """
-    print("========================== Tax allocation is running ==================================")
+    #print("========================== Tax allocation is running ==================================")
     taskAllactor = TaskAllocator()
     taskAllactor.run()
     allocated_tax = float(taskAllactor.get_input_text())
@@ -1690,9 +1692,30 @@ def show_menu(screen, map, running, game_loop, run_call_back, allocated_tax, lis
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            
+            # Mouse click
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                for i, option in enumerate(menu_options):
+                    option_text = font.render(option[0], True, (255, 255, 255))
+                    option_rect = option_text.get_rect(center=(menu_x + menu_width // 2, menu_y + 75 + i * 75))
+                    if option_rect.collidepoint(event.pos):
+                        selected = option[0]
+                        action = option[1]
+                        if (selected == "Save Game"):
+                            game_loop = action(running, map, game_loop, run_call_back, allocated_tax, list_of_tiled_objs,
+                                               saved_game_speed, saved_speed_multiplier, saved_current_time_str)
+                        else:
+                            game_loop = action(running, game_loop,
+                                               run_call_back, allocated_tax)
+                        menu_loop = False
+
+            # Keyboard click                         
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return
+                    action = menu_options[0][1]
+                    game_loop = action(running, game_loop,
+                                           run_call_back, allocated_tax)
+                    menu_loop = False
                 elif event.key == pygame.K_UP:
                     selected_option = max(0, selected_option - 1)
                 elif event.key == pygame.K_DOWN:

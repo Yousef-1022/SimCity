@@ -73,8 +73,10 @@ def run(running, loaded_game, new_game_flag, tax):
             loaded_objCount = pickle.load(f)
             loaded_nextObjCount = pickle.load(f)
             loaded_tax = pickle.load(f)
-            map.set_next_obj_id(loaded_nextObjCount)
+            loaded_scrollers = pickle.load(f)
             map.set_obj_count(loaded_objCount)
+            map.set_next_obj_id(loaded_nextObjCount)
+            map.set_scrollers(loaded_scrollers)
 
         # Handle object restore
         for loaded_obj in loaded_objs:
@@ -172,7 +174,7 @@ def run(running, loaded_game, new_game_flag, tax):
         map.display()
 
         description_panel.display(SCREEN, 24, (10, 10), (128, 128, 128),
-                                  f"Funds: ${player.money}        Citizens: {get_total_citizens()}      Tax: {allocated_tax}", (0, 0, 0))
+                                  f"Funds: ${player.money}        Citizens: {get_total_citizens()}      Tax: {allocated_tax * 100}%", (0, 0, 0))
         description_panel.display_time(
             SCREEN, f"Time: {timer.get_current_date_str()}", (400, 10))
         description_panel.display_game_speed(
@@ -205,6 +207,7 @@ def run(running, loaded_game, new_game_flag, tax):
                     else:
                         humans[key].satisfaction = res
             month = timer.get_current_time().month
+
 
         # Zones and (Buildings,Roads,Forest) Expense Logic
         if (timer.get_current_time().day != day):
@@ -248,6 +251,7 @@ def run(running, loaded_game, new_game_flag, tax):
                         obj.properties['Revenue'] = 0
             day = timer.get_current_time().day
 
+
         for event in pygame.event.get():  # mouse button click, keyboard, or the x button.
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 description_panel.handle_game_speed_click(
@@ -262,6 +266,7 @@ def run(running, loaded_game, new_game_flag, tax):
                 class_tobuild = "Nothing"
                 held_price = 0
 
+            # Handle Reclassify, Demolish, Upgrade
             if pygame.mouse.get_pressed()[0]:
                 if reclassify:
                     if reclassify.collidepoint(mouse_pos):
@@ -296,7 +301,9 @@ def run(running, loaded_game, new_game_flag, tax):
                 game_loop = False
                 show_menu(SCREEN,map, running, game_loop, run, allocated_tax, list_of_tiled_objs,
                           saved_game_speed, saved_speed_multiplier, saved_current_time_str)
-            elif event.type == pygame.MOUSEBUTTONUP:    # Cursor handling
+                
+            # Cursor handling
+            elif event.type == pygame.MOUSEBUTTONUP:    
                 selected_icon = builder_panel.get_selected_icon_index(
                     mouse_pos)
                 if (not normal_cursor):
@@ -340,6 +347,7 @@ def run(running, loaded_game, new_game_flag, tax):
                         else:
                             map.remove_road(x, y, "Road", map)
                         normal_cursor = True
+                        
                 if selected_icon != None:
                     # Handle cursor at selection
                     cursorImgRect = cursorImg.get_rect()
@@ -354,7 +362,9 @@ def run(running, loaded_game, new_game_flag, tax):
                         held_price = the_class.price
                     else:
                         held_price = 0
-            elif event.type == pygame.KEYDOWN:  # Scroll handling
+            
+            # Scroll handling    
+            elif event.type == pygame.KEYDOWN: 
                 clicked_cords = clicked_zone = upgrade = reclassify = demolish = demolish_confirm = None
                 map.handle_scroll(event.key)
 
@@ -377,6 +387,7 @@ def run(running, loaded_game, new_game_flag, tax):
         saved_speed_multiplier = timer.game_speed_multiplier
         saved_current_time_str = timer.get_current_date_str()
 
+        # SaveGame background objects data save
         list_of_tiled_objs = []
         for obj in map.get_all_objects():
             x = obj

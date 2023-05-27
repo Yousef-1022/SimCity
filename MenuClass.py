@@ -50,11 +50,9 @@ class MenuClass:
     - draw_screen(): Draws the game screen.
     - draw_menu(): Draws the menu on the screen.
     - draw_options(): Draws the options menu on the screen.
-    - resume_game(): Resumes the previously started game.
-    - save_game(): Saves the status of the current game.
     - start_new_game(): Starts a new game.
     - load_game(): Loads a saved game.
-    - show_instructions(): Displays the game instructions.
+    - draw_instructions(): Displays the game instructions.
     - exit_game(): Exits the game.
     - display_menu(): Displays the game menu and handles user input.
     """
@@ -88,18 +86,36 @@ class MenuClass:
         ]
 
         self.options_options = [
-            ("Resume", False),
             ("Instructions", False),
-            ("Save", False),
             ("Main Menu", False),
         ]
 
-        self.instruction_text = ["First, select a game speed to start the game with.",
-                                 "Next, zone areas for residential, commercial\n, and industrial development.",
-                                 "Use the budget tool to manage income and expenses\n. You can adjust tax rates and allocate funds",
-                                 "Experiment with different policies to boost your\n city's economy and happiness",
-                                 "Deal with natural disasters such as earthquakes,\n fires, and tornadoes that may occur in your city",
-                                 "Finally, aim to achieve specific goals \nsuch as reaching a certain population"]
+        self.instruction_text = [
+            "Introduction:",
+            "Begin the game with 10 initial citizens and embark on your mission to develop thriving Residential Zones and Work Zones.",
+            "Manage a starting budget of $100,000, ensuring it remains positive to uphold citizen satisfaction.",
+            "Zone Information:",
+            "Work Zones encompass Industrial Zones and Service Zones, which can be upgraded to accommodate a growing population.",
+            "Establish efficient road connections between Residential Zones and desired Work Zones to facilitate citizen movement.",
+            "Annual income is generated based on the Tax Rate and the population of each Work Zone, contributing to the city's financial stability.",
+            "Satisfaction Information:",
+            "Uphold high levels of citizen satisfaction to retain a content population and prevent citizens from leaving the city.",
+            "Enhance citizen satisfaction by strategically constructing Stadiums, Police Departments, and Forests throughout the city.",
+            "Optimize the placement of satisfaction-boosting structures by locating them in proximity to Residential Zones for maximum impact.",
+            "Forge strong Residential Zone to Work Zone connections through a well-designed network of Roads, enabling smooth citizen transitions.",
+            "Otherwise, if a Residential Zone is not connected to a Work Zone then the Work Zone was created in vain.",
+            "When a Citizen needs to travel to a distant Work Zone, their satisfaction level is adversely affected.",
+            "Demolish, and Disaster Information:",
+            "Be vigilant of the rare occurrence of natural fire disasters, with the likelihood increasing as more forests are developed annually.",
+            "A disaster removes Citizens from the game only if it happens on an RZone. Other structures are destroyed!",
+            "Demolishing a WorkZone results in all its Citizens becoming unemployed, and it becomes crucial to provide them with an alternative route.",
+            "In the event of demolishing a ResidentialZone without providing an alternative option, the Citizens residing there will become homeless,",
+            "potentially leading to their departure from the city. Ensure good connections among the Zones to avoid such issues!",
+            "Navigation:",
+            "Use the Arrow keys to navigate in the map, you are able to go: North, South, West, East.",
+            "Use the Right Mouse Button on a structure to show its relevant information. Only forests cannot be clicked.",
+            "Use the Bulldozer icon (1st Icon) to destory a certain Road. Be ware! A Road connecting between an RZone and WZone can't be destroyed!"
+        ]
 
         # Set up positions
         self.menu_title_pos = (self.screen_width // 2, 100)
@@ -140,16 +156,18 @@ class MenuClass:
         # Draw a semi-transparent black rectangle to create a background
         background = pygame.Surface(
             (self.screen_width, self.screen_height), pygame.SRCALPHA)
-        background.fill((0, 0, 0, 128))
+        background.fill((0, 0, 0, 191))
         self.screen.blit(background, (0, 0))
 
         # Draw the instruction text on the screen
+        vertical_offset = - (self.screen_width // 3)
+        line_spacing = 30
         for i, text in enumerate(self.instruction_text):
             text_surface = self.instruction_font.render(text, True, self.white)
             text_rect = text_surface.get_rect(center=(
-                self.screen_width // 2, self.screen_height // 2 + i * 50 - ((len(self.instruction_text)-1)*25)))
+                self.screen_width // 2, self.screen_height // 2 + i * line_spacing + vertical_offset))
             self.screen.blit(text_surface, text_rect)
-        self.show_instructions = False
+
 
     def handle_events(self):
         """
@@ -194,6 +212,20 @@ class MenuClass:
             self.handle_keydown_event_options(event)
 
     def handle_keydown_event_menu(self, event):
+        """
+        Handles keyboard events in MainMenu mode.
+        
+        This method is called when a keydown event occurs in MainMenu mode.
+        It checks the key that was pressed and performs the corresponding action
+        based on the current selected option.
+        
+        Args:
+            event (pygame.event.Event): The Pygame event object representing the
+                keydown event.
+
+        Returns:
+            None
+        """
         if event.key == pygame.K_UP:
             self.current_option = (self.current_option -
                                    1) % len(self.menu_options)
@@ -202,13 +234,11 @@ class MenuClass:
                                    1) % len(self.menu_options)
         elif event.key == pygame.K_RETURN:
             if self.current_option == 0:
-                print("New Game selected")
                 self.initialize_start_new_game_vars()
             elif self.current_option == 1:
                 self.menu_mode = False
                 self.current_option = 0
             elif self.current_option == 2:
-                print("Load Game selected")
                 self.initialize_start_load_game_vars()
             elif self.current_option == 3:
                 self.running = False
@@ -231,19 +261,22 @@ class MenuClass:
         Returns:
             None
         """
-        if event.key == pygame.K_RETURN:
+        self.show_instructions = False
+        if event.key == pygame.K_UP:
+            self.current_option = (self.current_option -
+                                   1) % len(self.options_options)
+        elif event.key == pygame.K_DOWN:
+            self.current_option = (self.current_option +
+                                   1) % len(self.options_options)
+        elif event.key == pygame.K_RETURN:
             if self.current_option == 0:
-                print("Resume selected")
-                # TODO: RESUME THE ALREADY STARTED GAME
-            elif self.current_option == 1:
-                print("Instructions selected")
                 self.show_instructions = True
-            elif self.current_option == 2:
-                print("Save selected")
-                # TODO: SAVE THE STATUS OF THE CURRENT GAME
-            elif self.current_option == 3:
+            else:
                 self.menu_mode = True
                 self.current_option = 0
+        elif event.key == pygame.K_ESCAPE:
+            self.menu_mode = True
+            self.current_option = 0
 
     def handle_mouse_buttondown_event(self, event):
         """
@@ -289,16 +322,12 @@ class MenuClass:
             if option_rect.collidepoint(event.pos):
                 self.current_option = i
                 if i == 0:
-                    print("New Game selected")
+                    self.initialize_start_new_game_vars()
                 elif i == 1:
-                    self.new_game_flag = True
-                    self.loaded_game = False
                     self.menu_mode = False
                     self.current_option = 0
                 elif i == 2:
-                    self.new_game_flag = False
-                    self.loaded_game = True
-                    print("Load Game selected")
+                    self.initialize_start_load_game_vars()
                 elif i == 3:
                     self.running = False
 
@@ -317,6 +346,7 @@ class MenuClass:
         Returns:
             None
         """
+        self.show_instructions = False
         for i, option in enumerate(self.options_options):
             option_text = self.menu_font.render(option[0], True, self.white)
             option_rect = option_text.get_rect(center=(
@@ -327,15 +357,8 @@ class MenuClass:
             if option_rect.collidepoint(event.pos):
                 self.current_option = i
                 if i == 0:
-                    print("Resume selected")
-                    self.resume_game()
-                elif i == 1:
-                    print("Instructions selected")
-                    self.show_instructions()
-                elif i == 2:
-                    print("Save selected")
-                    self.save_game()
-                elif i == 3:
+                    self.show_instructions = True
+                else:
                     self.menu_mode = True
                     self.current_option = 0
 
@@ -420,42 +443,35 @@ class MenuClass:
         Returns:
             None
         """
-        if self.current_option == 1:
-            if self.show_instructions:
-                self.draw_instructions()
-        else:
-            options_title_text = self.selected_font.render(
-                "Options", True, self.selected_color)
-            options_title_rect = options_title_text.get_rect(
-                center=self.options_title_pos)
-            self.screen.blit(options_title_text, options_title_rect)
-            for i, option in enumerate(self.options_options):
-                option_text = self.menu_font.render(
-                    option[0], True, self.white)
-                option_rect = option_text.get_rect(center=(
+            
+        options_title_text = self.selected_font.render(
+            "Options", True, self.selected_color)
+        options_title_rect = options_title_text.get_rect(
+            center=self.options_title_pos)
+        self.screen.blit(options_title_text, options_title_rect)
+        for i, option in enumerate(self.options_options):
+            option_text = self.menu_font.render(
+                option[0], True, self.white)
+            option_rect = option_text.get_rect(center=(
+                self.options_option_start_pos[0],
+                self.options_option_start_pos[1] +
+                i * self.options_option_spacing,
+            ))
+            if i == self.current_option:
+                selected_text = self.selected_font.render(
+                    option[0], True, self.selected_color)
+                selected_rect = selected_text.get_rect(center=(
                     self.options_option_start_pos[0],
                     self.options_option_start_pos[1] +
                     i * self.options_option_spacing,
                 ))
-                if i == self.current_option:
-                    selected_text = self.selected_font.render(
-                        option[0], True, self.selected_color)
-                    selected_rect = selected_text.get_rect(center=(
-                        self.options_option_start_pos[0],
-                        self.options_option_start_pos[1] +
-                        i * self.options_option_spacing,
-                    ))
-                    self.screen.blit(selected_text, selected_rect)
-                else:
-                    self.screen.blit(option_text, option_rect)
+                self.screen.blit(selected_text, selected_rect)
+            else:
+                self.screen.blit(option_text, option_rect)
+                
+        if self.show_instructions:
+            self.draw_instructions()
 
-    def resume_game(self):
-        print("Resume selected")
-        # TODO: RESUME THE ALREADY STARTED GAME
-
-    def save_game(self):
-        print("Save selected")
-        # TODO: SAVE THE STATUS OF THE CURRENT GAME
 
     def initialize_start_new_game_vars(self):
         """
@@ -493,9 +509,6 @@ class MenuClass:
         self.start_menu = False
         self.start_game = True
 
-    def show_instructions(self):
-        print("Instructions selected")
-        self.show_instructions = True
 
     def exit_game(self):
         self.running = False

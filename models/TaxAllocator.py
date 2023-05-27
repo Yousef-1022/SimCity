@@ -71,7 +71,7 @@ class TaskAllocator:
                 if self.button_rect.collidepoint(event.pos):
                     try:
                         input_value = float(self.input_text)
-                        if 0 <= input_value <= 1:
+                        if 0 <= input_value <= 100:
                             self.should_exit = True
                     except ValueError:
                         # Invalid input value (not a valid float)
@@ -81,7 +81,7 @@ class TaskAllocator:
                     if event.key == pygame.K_RETURN:
                         try:
                             input_value = float(self.input_text)
-                            if 0 <= input_value <= 1:
+                            if 0 <= input_value <= 100:
                                 self.should_exit = True
                         except ValueError:
                             # Invalid input value (not a valid float)
@@ -110,7 +110,7 @@ class TaskAllocator:
         # Render the title text
         title_font = pygame.font.Font(None, 48)
         title_text = title_font.render(
-            "Tax Allocation", True, (255, 255, 255))  # Title text color
+            "Tax Allocation in %", True, (255, 255, 255))  # Title text color
         title_text_rect = title_text.get_rect(
             centerx=self.container_rect.centerx, top=self.container_rect.top + 40)  # Adjust vertical position
         self.screen.blit(title_text, title_text_rect)
@@ -145,6 +145,7 @@ class TaskAllocator:
         while not self.should_exit:
             self.handle_events()
             self.draw()
+        self.input_text = str(float(self.input_text) / 100.0)
 
     def get_input_text(self):
         """Get the current text entered in the input field.
